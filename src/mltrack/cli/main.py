@@ -1,0 +1,72 @@
+"""Main CLI entry point for MLTrack."""
+
+import typer
+from rich.console import Console
+from rich.panel import Panel
+
+from mltrack import __version__
+from mltrack.cli.model_commands import model_app
+from mltrack.cli.report_commands import report_app
+from mltrack.cli.dashboard_commands import dashboard_app
+from mltrack.cli.add_command import add_model
+from mltrack.cli.list_command import list_models
+
+console = Console()
+
+app = typer.Typer(
+    name="mltrack",
+    help="Model Lineage Tracker - AI governance tool for financial services compliance.",
+    add_completion=False,
+    rich_markup_mode="rich",
+    no_args_is_help=True,
+)
+
+# Register top-level commands
+app.command(name="add", help="Add a new AI model to the inventory")(add_model)
+app.command(name="list", help="List all AI models in the inventory")(list_models)
+
+# Register subcommand groups
+app.add_typer(model_app, name="model", help="Manage AI model inventory")
+app.add_typer(report_app, name="report", help="Generate compliance reports")
+app.add_typer(dashboard_app, name="dashboard", help="View compliance dashboard")
+
+
+def version_callback(value: bool) -> None:
+    """Print version and exit."""
+    if value:
+        console.print(
+            Panel(
+                f"[bold blue]MLTrack[/bold blue] v{__version__}\n"
+                "[dim]Model Lineage Tracker for AI Governance[/dim]",
+                border_style="blue",
+            )
+        )
+        raise typer.Exit()
+
+
+@app.callback()
+def main(
+    version: bool = typer.Option(
+        False,
+        "--version",
+        "-v",
+        help="Show version and exit.",
+        callback=version_callback,
+        is_eager=True,
+    ),
+) -> None:
+    """
+    [bold]MLTrack[/bold] - Model Lineage Tracker
+
+    Track deployed AI models for compliance with:
+    • [cyan]NIST AI RMF[/cyan] - AI Risk Management Framework
+    • [cyan]ISO 42001[/cyan] - AI Management System Standard
+    • [cyan]SR 11-7[/cyan] - Federal Reserve Model Risk Management
+
+    [dim]Built for AI Risk Managers at financial services firms.[/dim]
+    """
+    pass
+
+
+if __name__ == "__main__":
+    app()
