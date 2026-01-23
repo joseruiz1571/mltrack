@@ -20,6 +20,7 @@ from mltrack.models.ai_model import (
     RiskTier,
     DeploymentEnvironment,
     ModelStatus,
+    DataClassification,
 )
 from mltrack.cli.error_helpers import (
     error_file_format,
@@ -146,7 +147,7 @@ def _model_to_dict(model: AIModel) -> dict[str, Any]:
         value = getattr(model, field, None)
 
         # Convert enums to string values
-        if isinstance(value, (RiskTier, DeploymentEnvironment, ModelStatus)):
+        if isinstance(value, (RiskTier, DeploymentEnvironment, ModelStatus, DataClassification)):
             value = value.value
 
         # Convert dates to ISO format strings
