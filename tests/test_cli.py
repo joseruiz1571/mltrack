@@ -33,5 +33,6 @@ class TestCLI:
         """Test report subcommand help."""
         result = runner.invoke(app, ["report", "--help"])
         assert result.exit_code == 0
-        assert "overdue" in result.output
-        assert "gaps" in result.output
+        assert "compliance" in result.output
+        assert "inventory" in result.output
+        assert "risk" in result.output

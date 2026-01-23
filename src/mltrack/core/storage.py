@@ -291,12 +291,8 @@ def update_model(
     # Validate update data
     _validate_model_data(updates, is_update=True)
 
-    # If risk_tier is changing, recalculate next_review_date
-    if "risk_tier" in updates and "next_review_date" not in updates:
-        updates["next_review_date"] = _calculate_next_review_date(
-            updates["risk_tier"],
-            updates.get("last_review_date", date.today()),
-        )
+    # We need the current model to determine the correct base date for review calculation
+    # Defer next_review_date calculation until we have the model
 
     try:
         with session_scope(db_path) as session:
@@ -308,10 +304,25 @@ def update_model(
             if model is None:
                 raise ModelNotFoundError(identifier)
 
+            # Determine if we need to recalculate next_review_date
+            recalc_review = False
+            if "risk_tier" in updates or "last_review_date" in updates:
+                if "next_review_date" not in updates:
+                    recalc_review = True
+
             # Apply updates
             for key, value in updates.items():
                 if hasattr(model, key):
                     setattr(model, key, value)
+
+            # Recalculate next_review_date if needed
+            if recalc_review:
+                # Priority: last_review_date > deployment_date > today
+                base_date = model.last_review_date or model.deployment_date or date.today()
+                model.next_review_date = _calculate_next_review_date(
+                    model.risk_tier,
+                    base_date,
+                )
 
             session.flush()
             session.refresh(model)
