@@ -4,7 +4,131 @@
 
 [![Python 3.9+](https://img.shields.io/badge/python-3.9+-blue.svg)](https://www.python.org/downloads/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](https://opensource.org/licenses/MIT)
-[![Tests](https://img.shields.io/badge/tests-469%20passing-brightgreen.svg)](#testing)
+[![Tests](https://img.shields.io/badge/tests-489%20passing-brightgreen.svg)](#testing)
+
+---
+
+## The Problem
+
+**Financial institutions deploying AI models face a critical governance gap.**
+
+As AI adoption accelerates in banking and financial services, regulatory scrutiny is intensifying. The Federal Reserve, OCC, and FDIC now require firms to maintain comprehensive AI model inventories with documented ownership, risk assessments, and scheduled reviews. Yet most organizations still track this information in spreadsheets—if at all.
+
+**The consequences of poor AI governance are severe:**
+
+- **Regulatory penalties**: Examiners cite inadequate model inventories as MRA (Matter Requiring Attention) findings
+- **Operational risk**: Orphaned models with no documented owner continue running in production
+- **Compliance failures**: Review deadlines pass unnoticed, creating audit trail gaps
+- **Reputational damage**: Models making decisions without proper oversight
+
+**MLTrack solves this by providing:**
+
+- A single source of truth for all deployed AI/ML models
+- Automated review scheduling based on risk tier
+- Compliance validation against governance requirements
+- Audit-ready reports for regulatory examinations
+
+---
+
+## Regulatory Alignment
+
+### NIST AI Risk Management Framework (AI RMF)
+
+MLTrack directly supports the NIST AI RMF core functions:
+
+| NIST AI RMF Function | MLTrack Feature | How It Helps |
+|---------------------|-----------------|--------------|
+| **GOVERN 1.1** - Legal/regulatory requirements | Risk tier classification | Maps models to review frequencies based on regulatory expectations |
+| **GOVERN 1.5** - Ongoing monitoring | `mltrack validate --all` | Automated compliance checking across entire inventory |
+| **GOVERN 4.1** - Organizational practices | Dashboard & reports | Centralized visibility into AI deployment landscape |
+| **MAP 1.1** - Intended purpose documented | Use case field | Captures business context for each model |
+| **MAP 1.5** - Risk assessment | Risk tier + validation rules | Identifies high-risk deployments requiring closer oversight |
+| **MEASURE 2.2** - Evaluation documented | Review tracking | Maintains audit trail of periodic assessments |
+| **MANAGE 1.1** - Risk response | Status lifecycle | Track deprecated/decommissioned models |
+| **MANAGE 2.3** - Risk monitoring | Overdue review alerts | Proactive notification of governance gaps |
+
+### Federal Reserve SR 11-7 (Model Risk Management)
+
+SR 11-7 requires banks to maintain "a comprehensive set of models in use across the organization." MLTrack implements key requirements:
+
+| SR 11-7 Requirement | MLTrack Implementation |
+|--------------------|------------------------|
+| Model inventory | Full model registry with metadata |
+| Ownership documentation | Business owner + technical owner fields |
+| Risk ranking | Four-tier risk classification system |
+| Ongoing monitoring | Risk-based review cycles (30/90/180/365 days) |
+| Validation documentation | Review notes and date tracking |
+| Reporting to board/management | Compliance and risk reports |
+
+### OCC 2011-12 & FDIC FIL-22-2017
+
+These complementary guidelines emphasize model governance practices that MLTrack supports:
+
+- **Effective challenge**: Documented review process with date tracking
+- **Model inventory maintenance**: Centralized registry with search/filter capabilities
+- **Third-party model risk**: Vendor tracking distinguishes in-house vs. external models
+- **Model lifecycle management**: Status field tracks active → deprecated → decommissioned
+
+---
+
+## Why Financial Services Needs This
+
+### The AI Governance Challenge
+
+Financial services firms face unique challenges with AI governance:
+
+1. **Volume**: Large banks may deploy hundreds of AI/ML models across business lines
+2. **Velocity**: New models are deployed weekly; existing models are updated constantly
+3. **Variety**: Models range from simple classifiers to complex LLM applications
+4. **Scrutiny**: Regulators examine AI use with increasing rigor
+
+### Current State at Most Firms
+
+- Model inventories live in Excel spreadsheets (if they exist at all)
+- Review schedules are tracked manually or forgotten entirely
+- No automated compliance checking
+- Audit preparation requires weeks of manual data gathering
+- No single view of AI risk concentration
+
+### How MLTrack Helps
+
+| Pain Point | MLTrack Solution |
+|------------|------------------|
+| "We don't know what models we have" | Centralized inventory with search |
+| "Reviews fall through the cracks" | Automated scheduling + overdue alerts |
+| "Audit prep takes weeks" | One-command report generation |
+| "No visibility into risk concentration" | Dashboard with risk distribution |
+| "Spreadsheets are error-prone" | Validated data entry + imports |
+
+---
+
+## Skills Demonstrated
+
+This project demonstrates proficiency in:
+
+### AI Governance & Risk Management
+- NIST AI RMF implementation
+- SR 11-7 Model Risk Management requirements
+- Risk-based control frameworks
+- Compliance validation logic
+
+### Software Engineering
+- Python CLI development (Typer/Click)
+- SQLAlchemy ORM with SQLite
+- Test-driven development (489 tests)
+- Clean architecture (separation of concerns)
+
+### Financial Services Domain Knowledge
+- Regulatory examination readiness
+- Model inventory management
+- Risk tiering methodologies
+- Audit trail requirements
+
+### Technical Skills
+- Rich terminal UI design
+- Data import/export (CSV, JSON)
+- Database design and indexing
+- Error handling with helpful messages
 
 ---
 
@@ -355,7 +479,7 @@ Aligned with SR 11-7 Model Risk Management guidance:
 
 ## Testing
 
-MLTrack includes a comprehensive test suite with 469 tests covering all functionality.
+MLTrack includes a comprehensive test suite with 489 tests covering all functionality.
 
 ```bash
 # Install dev dependencies
@@ -387,6 +511,8 @@ pytest -k "test_validate"
 | Export Command | 45 | File generation, filtering |
 | Sample Data | 33 | Demo data generation |
 | Reports | 42 | Compliance, inventory, risk reports |
+| Integration Workflows | 14 | End-to-end workflow testing |
+| Performance | 6 | Pagination, batch operations |
 
 ---
 
@@ -417,7 +543,7 @@ mltrack/
 │   │   └── ai_model.py        # AIModel SQLAlchemy model
 │   └── display/               # Output formatting
 │       └── formatters.py      # Rich formatting helpers
-├── tests/                      # Test suite (469 tests)
+├── tests/                      # Test suite (489 tests)
 ├── pyproject.toml             # Project configuration
 └── README.md
 ```
