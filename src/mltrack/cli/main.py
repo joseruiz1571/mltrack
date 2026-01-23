@@ -17,6 +17,7 @@ from mltrack.cli.validate_command import validate_command
 from mltrack.cli.reviewed_command import reviewed_command
 from mltrack.cli.import_command import import_models
 from mltrack.cli.export_command import export_models
+from mltrack.cli.sample_data_command import sample_data
 
 console = Console()
 
@@ -38,6 +39,7 @@ app.command(name="validate", help="Validate models against governance requiremen
 app.command(name="reviewed", help="Record that a model has been reviewed")(reviewed_command)
 app.command(name="import", help="Import models from CSV or JSON file")(import_models)
 app.command(name="export", help="Export models to CSV or JSON file")(export_models)
+app.command(name="sample-data", help="Generate sample data for demos")(sample_data)
 
 # Register subcommand groups
 app.add_typer(model_app, name="model", help="Manage AI model inventory")
