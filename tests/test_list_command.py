@@ -347,3 +347,64 @@ class TestListTableDisplay:
 
         assert result.exit_code == 0
         assert "..." in result.output  # Truncation indicator
+
+
+class TestListPagination:
+    """Tests for list command pagination."""
+
+    def test_limit_flag(self, sample_models):
+        """Test --limit flag limits results."""
+        result = runner.invoke(app, ["list", "--limit", "2"])
+
+        assert result.exit_code == 0
+        # Should show pagination info
+        assert "showing 1-2 of 3" in result.output.lower()
+
+    def test_offset_flag(self, sample_models):
+        """Test --offset flag skips results."""
+        result = runner.invoke(app, ["list", "--limit", "2", "--offset", "1"])
+
+        assert result.exit_code == 0
+        # Should show pagination info starting from offset
+        assert "showing 2-3 of 3" in result.output.lower()
+
+    def test_limit_without_offset(self, sample_models):
+        """Test limit shows hint for next page."""
+        result = runner.invoke(app, ["list", "--limit", "1"])
+
+        assert result.exit_code == 0
+        # Should hint about more results
+        assert "more results available" in result.output.lower()
+
+    def test_pagination_with_filter(self, sample_models):
+        """Test pagination works with filters."""
+        result = runner.invoke(app, ["list", "--status", "active", "--limit", "1"])
+
+        assert result.exit_code == 0
+        # Should work without errors
+
+    def test_json_output_with_limit(self, sample_models):
+        """Test JSON output respects limit."""
+        result = runner.invoke(app, ["list", "--json", "--limit", "1"])
+
+        assert result.exit_code == 0
+
+        data = json.loads(result.output)
+        assert isinstance(data, list)
+        assert len(data) == 1
+
+    def test_csv_export_with_limit(self, sample_models, tmp_path):
+        """Test CSV export respects limit."""
+        output_path = tmp_path / "limited.csv"
+
+        result = runner.invoke(app, [
+            "list",
+            "--output", str(output_path),
+            "--limit", "2",
+        ])
+
+        assert result.exit_code == 0
+
+        # Count rows in CSV (excluding header)
+        lines = output_path.read_text().strip().split("\n")
+        assert len(lines) == 3  # 1 header + 2 data rows

@@ -10,8 +10,11 @@ import typer
 from rich.console import Console
 from rich.panel import Panel
 
-from mltrack.core.storage import get_all_models
+from mltrack.core.storage import get_all_models, iter_all_models, get_model_count
 from mltrack.core.exceptions import DatabaseError
+
+# Threshold for using streaming export (number of models)
+STREAMING_THRESHOLD = 500
 from mltrack.models.ai_model import (
     AIModel,
     RiskTier,
@@ -184,6 +187,38 @@ def _write_csv(
             writer.writerow(_model_to_dict(model))
 
 
+def _write_csv_streaming(
+    file_path: Path,
+    model_iterator,
+    use_readable_headers: bool = True,
+) -> int:
+    """Write models to CSV file using streaming for memory efficiency.
+
+    Returns the number of models written.
+    """
+    count = 0
+    with open(file_path, "w", newline="", encoding="utf-8") as f:
+        if use_readable_headers:
+            headers = [CSV_HEADERS.get(field, field) for field in EXPORT_FIELDS]
+        else:
+            headers = EXPORT_FIELDS
+
+        writer = csv.DictWriter(f, fieldnames=EXPORT_FIELDS)
+
+        # Write header row
+        if use_readable_headers:
+            writer.writerow(dict(zip(EXPORT_FIELDS, headers)))
+        else:
+            writer.writeheader()
+
+        # Write data rows from iterator
+        for model in model_iterator:
+            writer.writerow(_model_to_dict(model))
+            count += 1
+
+    return count
+
+
 def _write_json(file_path: Path, models: list[AIModel], pretty: bool = True) -> None:
     """Write models to JSON file."""
     data = {
@@ -197,6 +232,37 @@ def _write_json(file_path: Path, models: list[AIModel], pretty: bool = True) -> 
             json.dump(data, f, indent=2, ensure_ascii=False)
         else:
             json.dump(data, f, ensure_ascii=False)
+
+
+def _write_json_streaming(
+    file_path: Path,
+    model_iterator,
+    pretty: bool = True,
+) -> int:
+    """Write models to JSON file using streaming for memory efficiency.
+
+    Note: For JSON, we still need to build the full structure, but we
+    process models one at a time to reduce peak memory usage.
+
+    Returns the number of models written.
+    """
+    models_data = []
+    for model in model_iterator:
+        models_data.append(_model_to_dict(model))
+
+    data = {
+        "exported_at": datetime.now().isoformat(),
+        "count": len(models_data),
+        "models": models_data,
+    }
+
+    with open(file_path, "w", encoding="utf-8") as f:
+        if pretty:
+            json.dump(data, f, indent=2, ensure_ascii=False)
+        else:
+            json.dump(data, f, ensure_ascii=False)
+
+    return len(models_data)
 
 
 def _write_template(file_path: Path) -> None:
@@ -364,37 +430,80 @@ def export_models(
             error_invalid_status(status)
             raise typer.Exit(1)
 
-    # Fetch models
+    # Check total count to decide if we should use streaming
     try:
-        models = get_all_models()
+        total_count = get_model_count(
+            risk_tier=risk_tier,
+            status=model_status,
+            vendor=vendor,
+        )
     except DatabaseError as e:
         error_database(e.operation, e.details)
         raise typer.Exit(1)
 
-    # Apply filters
-    models = _filter_models(models, risk_tier, vendor, env, model_status)
+    # Use streaming for large exports (note: environment filter requires post-processing)
+    use_streaming = total_count > STREAMING_THRESHOLD and env is None
 
-    if not models:
-        filter_desc = []
-        if risk_tier:
-            filter_desc.append(f"risk={risk_tier.value}")
-        if vendor:
-            filter_desc.append(f"vendor={vendor}")
-        if env:
-            filter_desc.append(f"environment={env.value}")
-        if model_status:
-            filter_desc.append(f"status={model_status.value}")
+    if use_streaming:
+        console.print(f"[dim]Large export ({total_count} models), using streaming mode...[/dim]")
 
-        filter_description = ", ".join(filter_desc) if filter_desc else None
-        warning_no_models(filter_description)
-        raise typer.Exit(0)
+    # Fetch models
+    try:
+        if use_streaming:
+            # Use iterator for memory efficiency
+            model_iterator = iter_all_models(
+                risk_tier=risk_tier,
+                status=model_status,
+                vendor=vendor,
+            )
+            # For streaming, we write directly and skip the filter step
+            models = None
+        else:
+            models = get_all_models(
+                risk_tier=risk_tier,
+                status=model_status,
+                vendor=vendor,
+            )
+    except DatabaseError as e:
+        error_database(e.operation, e.details)
+        raise typer.Exit(1)
+
+    # Apply environment filter (only for non-streaming mode)
+    if models is not None:
+        models = _filter_models(models, risk_tier, vendor, env, model_status)
+
+        if not models:
+            filter_desc = []
+            if risk_tier:
+                filter_desc.append(f"risk={risk_tier.value}")
+            if vendor:
+                filter_desc.append(f"vendor={vendor}")
+            if env:
+                filter_desc.append(f"environment={env.value}")
+            if model_status:
+                filter_desc.append(f"status={model_status.value}")
+
+            filter_description = ", ".join(filter_desc) if filter_desc else None
+            warning_no_models(filter_description)
+            raise typer.Exit(0)
 
     # Write file
     try:
-        if suffix == ".csv":
-            _write_csv(file, models, use_readable_headers=not machine_headers)
+        if use_streaming:
+            # Use streaming functions for large exports
+            if suffix == ".csv":
+                export_count = _write_csv_streaming(
+                    file, model_iterator, use_readable_headers=not machine_headers
+                )
+            else:
+                export_count = _write_json_streaming(file, model_iterator, pretty=not compact)
         else:
-            _write_json(file, models, pretty=not compact)
+            # Standard export for smaller datasets
+            if suffix == ".csv":
+                _write_csv(file, models, use_readable_headers=not machine_headers)
+            else:
+                _write_json(file, models, pretty=not compact)
+            export_count = len(models)
     except IOError as e:
         error_file_write(str(file), str(e))
         raise typer.Exit(1)
@@ -416,7 +525,7 @@ def export_models(
 
     console.print(
         Panel(
-            f"[green]Exported {len(models)} model(s) to:[/green] {file}{filter_msg}",
+            f"[green]Exported {export_count} model(s) to:[/green] {file}{filter_msg}",
             title="[green]✓ Export Successful[/green]",
             border_style="green",
         )

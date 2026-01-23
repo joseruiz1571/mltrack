@@ -12,7 +12,7 @@ from rich.table import Table
 from rich.panel import Panel
 from rich import box
 
-from mltrack.core.storage import get_all_models
+from mltrack.core.storage import get_all_models, get_model_count
 from mltrack.core.exceptions import DatabaseError
 from mltrack.models import RiskTier, DeploymentEnvironment, ModelStatus, AIModel
 from mltrack.cli.error_helpers import (
@@ -104,11 +104,22 @@ def _model_to_dict(model: AIModel) -> dict:
     }
 
 
-def _create_table(models: list[AIModel], verbose: bool = False) -> Table:
+def _create_table(
+    models: list[AIModel],
+    verbose: bool = False,
+    total_count: int | None = None,
+    offset: int = 0,
+) -> Table:
     """Create a Rich table for displaying models."""
+    # Build title with pagination info if applicable
+    if total_count is not None and total_count > len(models):
+        title = f"AI Model Inventory (showing {offset + 1}-{offset + len(models)} of {total_count})"
+    else:
+        title = f"AI Model Inventory ({len(models)} models)"
+
     if verbose:
         table = Table(
-            title=f"AI Model Inventory ({len(models)} models)",
+            title=title,
             show_header=True,
             header_style="bold cyan",
             box=box.ROUNDED,
@@ -156,7 +167,7 @@ def _create_table(models: list[AIModel], verbose: bool = False) -> Table:
     else:
         # Compact view
         table = Table(
-            title=f"AI Model Inventory ({len(models)} models)",
+            title=title,
             show_header=True,
             header_style="bold cyan",
             box=box.ROUNDED,
@@ -233,6 +244,18 @@ def list_models(
         "--status", "-s",
         help=f"Show only models with this status: {', '.join(STATUSES)}",
     ),
+    limit: Optional[int] = typer.Option(
+        None,
+        "--limit", "-l",
+        help="Maximum number of models to display (for pagination)",
+        min=1,
+    ),
+    offset: Optional[int] = typer.Option(
+        None,
+        "--offset",
+        help="Number of models to skip (for pagination, use with --limit)",
+        min=0,
+    ),
     verbose: bool = typer.Option(
         False,
         "--verbose", "-v",
@@ -263,6 +286,11 @@ def list_models(
       --status      Filter by lifecycle status (active/deprecated/decommissioned)
 
     \b
+    [bold cyan]Pagination:[/bold cyan]
+      --limit       Maximum number of models to show
+      --offset      Number of models to skip
+
+    \b
     [bold cyan]Output Formats:[/bold cyan]
       [default]     Rich table in terminal
       --verbose     Extended table with all fields
@@ -285,6 +313,11 @@ def list_models(
       [dim]# Combine filters[/dim]
       mltrack list --risk high --environment prod
       mltrack list --vendor openai --status active
+
+      [dim]# Pagination (for large inventories)[/dim]
+      mltrack list --limit 20
+      mltrack list --limit 20 --offset 20
+      mltrack list -l 50 --offset 100
 
       [dim]# Verbose output with all fields[/dim]
       mltrack list -v
@@ -312,12 +345,26 @@ def list_models(
             error_invalid_status(status)
             raise typer.Exit(1)
 
-    # Fetch models
+    # Get total count for pagination info (only if using limit)
+    total_count = None
+    if limit is not None:
+        try:
+            total_count = get_model_count(
+                risk_tier=risk_filter,
+                status=status_filter,
+                vendor=vendor,
+            )
+        except DatabaseError:
+            pass  # Non-critical, pagination info is optional
+
+    # Fetch models with pagination
     try:
         models = get_all_models(
             risk_tier=risk_filter,
             status=status_filter,
             vendor=vendor,
+            limit=limit,
+            offset=offset,
         )
     except DatabaseError as e:
         error_database(e.operation, e.details)
@@ -367,10 +414,21 @@ def list_models(
         warning_no_models(filter_description)
         return
 
-    table = _create_table(models, verbose=verbose)
+    table = _create_table(
+        models,
+        verbose=verbose,
+        total_count=total_count,
+        offset=offset or 0,
+    )
     console.print()
     console.print(table)
     console.print()
+
+    # Show pagination hint if there are more results
+    if total_count is not None and (offset or 0) + len(models) < total_count:
+        next_offset = (offset or 0) + len(models)
+        console.print(f"[dim]More results available. Use --offset {next_offset} to see next page.[/dim]")
+        console.print()
 
     # Show summary
     risk_counts = {}

@@ -113,6 +113,13 @@ class AIModel(Base):
         Index("ix_ai_models_status", "status"),
         Index("ix_ai_models_next_review", "next_review_date"),
         Index("ix_ai_models_vendor", "vendor"),
+        Index("ix_ai_models_environment", "deployment_environment"),
+        # Composite indexes for common filter combinations
+        Index("ix_ai_models_status_risk", "status", "risk_tier"),
+        Index("ix_ai_models_status_env", "status", "deployment_environment"),
+        Index("ix_ai_models_status_vendor", "status", "vendor"),
+        # Index for review queries (status + next_review_date)
+        Index("ix_ai_models_active_reviews", "status", "next_review_date"),
     )
 
     def __repr__(self) -> str:

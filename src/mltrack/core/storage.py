@@ -186,6 +186,71 @@ def create_model(model_data: dict[str, Any], db_path: Path | None = None) -> AIM
         raise DatabaseError("create", str(e))
 
 
+def create_models_batch(
+    models_data: list[dict[str, Any]],
+    db_path: Path | None = None,
+    batch_size: int = 100,
+    skip_existing: bool = False,
+) -> tuple[int, int, list[str]]:
+    """Create multiple models in batches for better performance.
+
+    Args:
+        models_data: List of dictionaries containing model fields
+        db_path: Optional database path
+        batch_size: Number of models to insert per transaction
+        skip_existing: If True, skip models with duplicate names instead of failing
+
+    Returns:
+        Tuple of (created_count, skipped_count, error_messages)
+
+    Raises:
+        DatabaseError: If database operation fails
+    """
+    init_db(db_path)
+
+    created_count = 0
+    skipped_count = 0
+    errors: list[str] = []
+
+    # Process in batches
+    for i in range(0, len(models_data), batch_size):
+        batch = models_data[i:i + batch_size]
+
+        try:
+            with session_scope(db_path) as session:
+                for model_data in batch:
+                    try:
+                        # Validate input
+                        _validate_model_data(model_data.copy(), is_update=False)
+
+                        # Calculate next_review_date if not provided
+                        if "next_review_date" not in model_data or model_data["next_review_date"] is None:
+                            model_data["next_review_date"] = _calculate_next_review_date(
+                                model_data["risk_tier"] if isinstance(model_data["risk_tier"], RiskTier)
+                                else RiskTier(model_data["risk_tier"].lower()),
+                                model_data["deployment_date"],
+                            )
+
+                        model = AIModel(**model_data)
+                        session.add(model)
+                        session.flush()  # Flush to catch duplicates early
+                        created_count += 1
+
+                    except IntegrityError:
+                        session.rollback()
+                        if skip_existing:
+                            skipped_count += 1
+                        else:
+                            errors.append(f"Duplicate: {model_data.get('model_name', 'unknown')}")
+                    except ValidationError as e:
+                        errors.append(f"{model_data.get('model_name', 'unknown')}: {e.message}")
+
+        except SQLAlchemyError as e:
+            errors.append(f"Batch {i // batch_size + 1} failed: {str(e)}")
+
+    return created_count, skipped_count, errors
+
+
 def get_model(identifier: str, db_path: Path | None = None) -> AIModel:
     """Get a model by ID or name.
 
@@ -226,14 +291,18 @@ def get_all_models(
     status: ModelStatus | None = None,
     risk_tier: RiskTier | None = None,
     vendor: str | None = None,
+    limit: int | None = None,
+    offset: int | None = None,
 ) -> list[AIModel]:
-    """Get all models with optional filtering.
+    """Get all models with optional filtering and pagination.
 
     Args:
         db_path: Optional database path
         status: Filter by status
         risk_tier: Filter by risk tier
         vendor: Filter by vendor
+        limit: Maximum number of models to return
+        offset: Number of models to skip
 
     Returns:
         List of AIModel instances
@@ -255,6 +324,13 @@ def get_all_models(
                 stmt = stmt.where(AIModel.vendor == vendor)
 
             stmt = stmt.order_by(AIModel.model_name)
+
+            # Apply pagination
+            if offset is not None and offset > 0:
+                stmt = stmt.offset(offset)
+            if limit is not None and limit > 0:
+                stmt = stmt.limit(limit)
+
             models = list(session.execute(stmt).scalars().all())
 
             for model in models:
@@ -263,6 +339,46 @@ def get_all_models(
             return models
     except SQLAlchemyError as e:
         raise DatabaseError("list", str(e))
+
+
+def get_model_count(
+    db_path: Path | None = None,
+    status: ModelStatus | None = None,
+    risk_tier: RiskTier | None = None,
+    vendor: str | None = None,
+) -> int:
+    """Get count of models matching filters (for pagination).
+
+    Args:
+        db_path: Optional database path
+        status: Filter by status
+        risk_tier: Filter by risk tier
+        vendor: Filter by vendor
+
+    Returns:
+        Count of matching models
+
+    Raises:
+        DatabaseError: If database operation fails
+    """
+    from sqlalchemy import func
+
+    init_db(db_path)
+
+    try:
+        with session_scope(db_path) as session:
+            stmt = select(func.count(AIModel.id))
+
+            if status is not None:
+                stmt = stmt.where(AIModel.status == status)
+            if risk_tier is not None:
+                stmt = stmt.where(AIModel.risk_tier == risk_tier)
+            if vendor is not None:
+                stmt = stmt.where(AIModel.vendor == vendor)
+
+            return session.execute(stmt).scalar() or 0
+    except SQLAlchemyError as e:
+        raise DatabaseError("count", str(e))
 
 
 def update_model(
@@ -431,3 +547,55 @@ def get_risk_distribution(db_path: Path | None = None) -> dict[str, int]:
             return distribution
     except SQLAlchemyError as e:
         raise DatabaseError("query", str(e))
+
+
+def iter_all_models(
+    db_path: Path | None = None,
+    status: ModelStatus | None = None,
+    risk_tier: RiskTier | None = None,
+    vendor: str | None = None,
+    chunk_size: int = 100,
+):
+    """Iterate over all models in chunks for memory-efficient processing.
+
+    This is useful for large exports where loading all models at once
+    would consume too much memory.
+
+    Args:
+        db_path: Optional database path
+        status: Filter by status
+        risk_tier: Filter by risk tier
+        vendor: Filter by vendor
+        chunk_size: Number of models to fetch per chunk
+
+    Yields:
+        AIModel instances
+
+    Raises:
+        DatabaseError: If database operation fails
+    """
+    from typing import Generator
+
+    init_db(db_path)
+
+    offset = 0
+    while True:
+        models = get_all_models(
+            db_path=db_path,
+            status=status,
+            risk_tier=risk_tier,
+            vendor=vendor,
+            limit=chunk_size,
+            offset=offset,
+        )
+
+        if not models:
+            break
+
+        for model in models:
+            yield model
+
+        if len(models) < chunk_size:
+            break
+
+        offset += chunk_size
