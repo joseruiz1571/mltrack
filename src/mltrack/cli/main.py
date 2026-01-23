@@ -15,6 +15,7 @@ from mltrack.cli.update_command import update_model_command
 from mltrack.cli.delete_command import delete_model_command
 from mltrack.cli.validate_command import validate_command
 from mltrack.cli.reviewed_command import reviewed_command
+from mltrack.cli.import_command import import_models
 
 console = Console()
 
@@ -34,6 +35,7 @@ app.command(name="update", help="Update an existing model")(update_model_command
 app.command(name="delete", help="Delete a model from the inventory")(delete_model_command)
 app.command(name="validate", help="Validate models against governance requirements")(validate_command)
 app.command(name="reviewed", help="Record that a model has been reviewed")(reviewed_command)
+app.command(name="import", help="Import models from CSV or JSON file")(import_models)
 
 # Register subcommand groups
 app.add_typer(model_app, name="model", help="Manage AI model inventory")
