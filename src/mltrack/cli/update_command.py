@@ -10,7 +10,7 @@ from rich.table import Table
 from rich.prompt import Confirm
 from rich import box
 
-from mltrack.core.storage import get_model, update_model, REVIEW_FREQUENCY
+from mltrack.core.storage import get_model, get_all_models, update_model, REVIEW_FREQUENCY
 from mltrack.core.exceptions import (
     ModelNotFoundError,
     ModelAlreadyExistsError,
@@ -18,6 +18,18 @@ from mltrack.core.exceptions import (
     DatabaseError,
 )
 from mltrack.models import RiskTier, DeploymentEnvironment, DataClassification, ModelStatus, AIModel
+from mltrack.cli.error_helpers import (
+    error_model_not_found,
+    error_model_already_exists,
+    error_validation,
+    error_database,
+    error_invalid_risk_tier,
+    error_invalid_environment,
+    error_invalid_status,
+    error_invalid_data_classification,
+    error_invalid_date,
+    warning_no_changes,
+)
 
 console = Console()
 
@@ -46,9 +58,8 @@ def _validate_risk_tier(value: str) -> str:
     """Validate risk tier value."""
     normalized = value.lower()
     if normalized not in RISK_TIERS:
-        raise typer.BadParameter(
-            f"Invalid risk tier: '{value}'. Must be one of: {', '.join(RISK_TIERS)}"
-        )
+        error_invalid_risk_tier(value)
+        raise typer.Exit(1)
     return normalized
 
 
@@ -56,9 +67,8 @@ def _validate_status(value: str) -> str:
     """Validate status value."""
     normalized = value.lower()
     if normalized not in STATUSES:
-        raise typer.BadParameter(
-            f"Invalid status: '{value}'. Must be one of: {', '.join(STATUSES)}"
-        )
+        error_invalid_status(value)
+        raise typer.Exit(1)
     return normalized
 
 
@@ -74,9 +84,8 @@ def _validate_environment(value: str) -> str:
         normalized = "staging"
 
     if normalized not in ENVIRONMENTS:
-        raise typer.BadParameter(
-            f"Invalid environment: '{value}'. Must be one of: {', '.join(ENVIRONMENTS)}"
-        )
+        error_invalid_environment(value)
+        raise typer.Exit(1)
     return normalized
 
 
@@ -84,9 +93,8 @@ def _validate_data_classification(value: str) -> str:
     """Validate data classification value."""
     normalized = value.lower()
     if normalized not in DATA_CLASSIFICATIONS:
-        raise typer.BadParameter(
-            f"Invalid classification: '{value}'. Must be one of: {', '.join(DATA_CLASSIFICATIONS)}"
-        )
+        error_invalid_data_classification(value)
+        raise typer.Exit(1)
     return normalized
 
 
@@ -95,9 +103,8 @@ def _validate_date(value: str) -> date:
     try:
         return date.fromisoformat(value)
     except ValueError:
-        raise typer.BadParameter(
-            f"Invalid date format: '{value}'. Use YYYY-MM-DD (e.g., 2025-01-15)"
-        )
+        error_invalid_date(value)
+        raise typer.Exit(1)
 
 
 def _format_value(value, field_type: str = "text") -> str:
@@ -316,17 +323,15 @@ def update_model_command(
     try:
         model = get_model(identifier)
     except ModelNotFoundError:
-        console.print(
-            Panel(
-                f"[red]Model not found:[/red] '{identifier}'\n\n"
-                "[dim]Use [cyan]mltrack list[/cyan] to see all models in the inventory.[/dim]",
-                title="Not Found",
-                border_style="red",
-            )
-        )
+        # Get available model names for fuzzy matching suggestions
+        try:
+            available_models = [m.model_name for m in get_all_models()]
+        except DatabaseError:
+            available_models = None
+        error_model_not_found(identifier, available_models)
         raise typer.Exit(1)
     except DatabaseError as e:
-        console.print(f"[red]Database error:[/red] {e.details}")
+        error_database(e.operation, e.details)
         raise typer.Exit(1)
 
     # Build updates dictionary with validation
@@ -379,21 +384,13 @@ def update_model_command(
         if notes is not None:
             updates["notes"] = notes.strip()
 
-    except typer.BadParameter as e:
-        console.print(f"[red]Validation error:[/red] {e.message}")
-        raise typer.Exit(1)
+    except typer.Exit:
+        # Re-raise Exit exceptions from validation functions
+        raise
 
     # Check if any updates were provided
     if not updates:
-        console.print(
-            Panel(
-                "[yellow]No changes specified.[/yellow]\n\n"
-                "[dim]Provide at least one field to update. See available options with:[/dim]\n"
-                "[cyan]mltrack update --help[/cyan]",
-                title="No Changes",
-                border_style="yellow",
-            )
-        )
+        warning_no_changes()
         raise typer.Exit(0)
 
     # Show comparison table
@@ -419,20 +416,13 @@ def update_model_command(
     try:
         updated_model = update_model(identifier, updates)
     except ModelAlreadyExistsError:
-        console.print(
-            Panel(
-                f"[red]A model named '[bold]{updates.get('model_name', '')}[/bold]' already exists.[/red]\n\n"
-                "[dim]Choose a different name.[/dim]",
-                title="[red]Duplicate Name[/red]",
-                border_style="red",
-            )
-        )
+        error_model_already_exists(updates.get("model_name", identifier))
         raise typer.Exit(1)
     except ValidationError as e:
-        console.print(f"[red]Validation error:[/red] {e.message}")
+        error_validation(e.field, e.message)
         raise typer.Exit(1)
     except DatabaseError as e:
-        console.print(f"[red]Database error:[/red] {e.details}")
+        error_database(e.operation, e.details)
         raise typer.Exit(1)
 
     # Success message

@@ -120,7 +120,8 @@ class TestValidateCommand:
         result = runner.invoke(app, ["validate"])
 
         assert result.exit_code == 0
-        assert "Please specify which models to validate" in result.output
+        # Should prompt user to specify an option/filter
+        assert "please specify" in result.output.lower()
 
     def test_validate_empty_inventory(self, clean_db):
         """Test validating empty inventory."""

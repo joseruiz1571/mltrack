@@ -21,6 +21,7 @@ from mltrack.models.ai_model import (
     ModelStatus,
 )
 from mltrack.display.formatters import RISK_COLORS, format_risk_tier, format_status
+from mltrack.cli.error_helpers import error_invalid_risk_tier, error_invalid_environment
 
 console = Console()
 
@@ -612,30 +613,14 @@ def show_dashboard(
     if risk:
         risk_tier = _parse_risk_tier(risk)
         if risk_tier is None:
-            valid = [t.value for t in RiskTier]
-            console.print(
-                Panel(
-                    f"[red]Invalid risk tier:[/red] '{risk}'\n"
-                    f"[dim]Valid options: {', '.join(valid)}[/dim]",
-                    title="[bold red]Error[/bold red]",
-                    border_style="red",
-                )
-            )
+            error_invalid_risk_tier(risk)
             raise typer.Exit(1)
 
     env = None
     if environment:
         env = _parse_environment(environment)
         if env is None:
-            valid = [e.value for e in DeploymentEnvironment]
-            console.print(
-                Panel(
-                    f"[red]Invalid environment:[/red] '{environment}'\n"
-                    f"[dim]Valid options: {', '.join(valid)}[/dim]",
-                    title="[bold red]Error[/bold red]",
-                    border_style="red",
-                )
-            )
+            error_invalid_environment(environment)
             raise typer.Exit(1)
 
     # Get filter description for header

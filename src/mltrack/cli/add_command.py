@@ -18,6 +18,16 @@ from mltrack.core.exceptions import (
     DatabaseError,
 )
 from mltrack.models import RiskTier, DeploymentEnvironment, DataClassification
+from mltrack.cli.error_helpers import (
+    error_model_already_exists,
+    error_validation,
+    error_database,
+    error_missing_fields,
+    error_invalid_date,
+    error_invalid_risk_tier,
+    error_invalid_environment,
+    error_invalid_data_classification,
+)
 
 console = Console()
 
@@ -27,27 +37,33 @@ ENVIRONMENTS = [e.value for e in DeploymentEnvironment]
 DATA_CLASSIFICATIONS = [c.value for c in DataClassification]
 
 
-def validate_date(value: str) -> date:
+def validate_date(value: str, raise_exit: bool = False) -> date:
     """Validate and parse date string."""
     try:
         return date.fromisoformat(value)
     except ValueError:
+        if raise_exit:
+            error_invalid_date(value, "deployment_date")
+            raise typer.Exit(1)
         raise typer.BadParameter(
             f"Invalid date format: '{value}'. Use YYYY-MM-DD (e.g., 2025-01-15)"
         )
 
 
-def validate_risk_tier(value: str) -> str:
+def validate_risk_tier(value: str, raise_exit: bool = False) -> str:
     """Validate risk tier value."""
     normalized = value.lower()
     if normalized not in RISK_TIERS:
+        if raise_exit:
+            error_invalid_risk_tier(value)
+            raise typer.Exit(1)
         raise typer.BadParameter(
             f"Invalid risk tier: '{value}'. Must be one of: {', '.join(RISK_TIERS)}"
         )
     return normalized
 
 
-def validate_environment(value: Optional[str]) -> Optional[str]:
+def validate_environment(value: Optional[str], raise_exit: bool = False) -> Optional[str]:
     """Validate deployment environment value."""
     if value is None or value == "":
         return None
@@ -61,18 +77,24 @@ def validate_environment(value: Optional[str]) -> Optional[str]:
         normalized = "staging"
 
     if normalized not in ENVIRONMENTS:
+        if raise_exit:
+            error_invalid_environment(value)
+            raise typer.Exit(1)
         raise typer.BadParameter(
             f"Invalid environment: '{value}'. Must be one of: {', '.join(ENVIRONMENTS)}"
         )
     return normalized
 
 
-def validate_data_classification(value: Optional[str]) -> Optional[str]:
+def validate_data_classification(value: Optional[str], raise_exit: bool = False) -> Optional[str]:
     """Validate data classification value."""
     if value is None or value == "":
         return None
     normalized = value.lower()
     if normalized not in DATA_CLASSIFICATIONS:
+        if raise_exit:
+            error_invalid_data_classification(value)
+            raise typer.Exit(1)
         raise typer.BadParameter(
             f"Invalid classification: '{value}'. Must be one of: {', '.join(DATA_CLASSIFICATIONS)}"
         )
@@ -294,12 +316,14 @@ def _show_confirmation(data: dict) -> bool:
 
 def _save_model(data: dict) -> None:
     """Validate, transform, and save the model."""
-    # Validate inputs
+    # Validate inputs with improved error messages
     try:
-        parsed_date = validate_date(data["deployment_date"])
-        validated_risk_tier = validate_risk_tier(data["risk_tier"])
-        validated_env = validate_environment(data.get("environment"))
-        validated_classification = validate_data_classification(data.get("data_classification"))
+        parsed_date = validate_date(data["deployment_date"], raise_exit=True)
+        validated_risk_tier = validate_risk_tier(data["risk_tier"], raise_exit=True)
+        validated_env = validate_environment(data.get("environment"), raise_exit=True)
+        validated_classification = validate_data_classification(data.get("data_classification"), raise_exit=True)
+    except typer.Exit:
+        raise
     except typer.BadParameter as e:
         console.print(f"[red]Error:[/red] {e.message}")
         raise typer.Exit(1)
@@ -331,21 +355,13 @@ def _save_model(data: dict) -> None:
     try:
         model = create_model(model_data)
     except ModelAlreadyExistsError:
-        console.print(
-            Panel(
-                f"[red]A model named '[bold]{data['name']}[/bold]' already exists.[/red]\n\n"
-                "[dim]Use a different name or update the existing model with:[/dim]\n"
-                f"[cyan]mltrack model edit {data['name']}[/cyan]",
-                title="[red]Duplicate Model[/red]",
-                border_style="red",
-            )
-        )
+        error_model_already_exists(data["name"])
         raise typer.Exit(1)
     except ValidationError as e:
-        console.print(f"[red]Validation error:[/red] {e.message}")
+        error_validation(e.field, e.message)
         raise typer.Exit(1)
     except DatabaseError as e:
-        console.print(f"[red]Database error:[/red] {e.details}")
+        error_database(e.operation, e.details)
         raise typer.Exit(1)
 
     # Success output
@@ -517,15 +533,7 @@ def add_model(
         missing = [k.replace("_", "-") for k, v in required_fields.items() if v is None]
 
         if missing:
-            console.print(
-                Panel(
-                    f"[red]Missing required fields:[/red] {', '.join(f'--{f}' for f in missing)}\n\n"
-                    "[dim]Provide all required flags, or use interactive mode:[/dim]\n"
-                    "[cyan]mltrack add --interactive[/cyan]",
-                    title="[red]Missing Fields[/red]",
-                    border_style="red",
-                )
-            )
+            error_missing_fields(missing)
             raise typer.Exit(1)
 
         # Build data dict and save

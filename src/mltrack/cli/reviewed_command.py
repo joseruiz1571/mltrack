@@ -9,9 +9,10 @@ from rich.panel import Panel
 from rich.table import Table
 from rich import box
 
-from mltrack.core.storage import get_model, update_model, REVIEW_FREQUENCY
+from mltrack.core.storage import get_model, get_all_models, update_model, REVIEW_FREQUENCY
 from mltrack.core.exceptions import ModelNotFoundError, DatabaseError
 from mltrack.models import RiskTier
+from mltrack.cli.error_helpers import error_model_not_found, error_database, error_invalid_date
 
 console = Console()
 
@@ -107,25 +108,23 @@ def reviewed_command(
     # Parse the review date
     try:
         parsed_date = _parse_date(review_date)
-    except typer.BadParameter as e:
-        console.print(f"[red]Error:[/red] {e.message}")
+    except typer.BadParameter:
+        error_invalid_date(review_date, "review date")
         raise typer.Exit(1)
 
     # Get the current model
     try:
         model = get_model(identifier)
     except ModelNotFoundError:
-        console.print(
-            Panel(
-                f"[red]Model not found:[/red] '{identifier}'\n\n"
-                "[dim]Use [cyan]mltrack list[/cyan] to see all models.[/dim]",
-                title="Not Found",
-                border_style="red",
-            )
-        )
+        # Get available model names for fuzzy matching suggestions
+        try:
+            available_models = [m.model_name for m in get_all_models()]
+        except DatabaseError:
+            available_models = None
+        error_model_not_found(identifier, available_models)
         raise typer.Exit(1)
     except DatabaseError as e:
-        console.print(f"[red]Database error:[/red] {e.details}")
+        error_database(e.operation, e.details)
         raise typer.Exit(1)
 
     # Store previous values for comparison
@@ -145,7 +144,7 @@ def reviewed_command(
     try:
         updated_model = update_model(identifier, updates)
     except DatabaseError as e:
-        console.print(f"[red]Database error:[/red] {e.details}")
+        error_database(e.operation, e.details)
         raise typer.Exit(1)
 
     # Calculate review cycle days

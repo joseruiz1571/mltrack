@@ -18,6 +18,15 @@ from mltrack.models.ai_model import (
     DeploymentEnvironment,
     ModelStatus,
 )
+from mltrack.cli.error_helpers import (
+    error_file_format,
+    error_file_write,
+    error_invalid_risk_tier,
+    error_invalid_environment,
+    error_invalid_status,
+    error_database,
+    warning_no_models,
+)
 
 console = Console()
 
@@ -307,14 +316,7 @@ def export_models(
     # Determine file type
     suffix = file.suffix.lower()
     if suffix not in [".csv", ".json"]:
-        console.print(
-            Panel(
-                f"[red]Unsupported file type:[/red] '{suffix}'\n\n"
-                "[dim]Supported formats: .csv, .json[/dim]",
-                title="[red]Error[/red]",
-                border_style="red",
-            )
-        )
+        error_file_format(str(file), [".csv", ".json"], suffix)
         raise typer.Exit(1)
 
     # Handle template mode
@@ -345,58 +347,28 @@ def export_models(
     if risk:
         risk_tier = _parse_risk_tier(risk)
         if risk_tier is None:
-            valid = [t.value for t in RiskTier]
-            console.print(
-                Panel(
-                    f"[red]Invalid risk tier:[/red] '{risk}'\n"
-                    f"[dim]Valid options: {', '.join(valid)}[/dim]",
-                    title="[red]Error[/red]",
-                    border_style="red",
-                )
-            )
+            error_invalid_risk_tier(risk)
             raise typer.Exit(1)
 
     env = None
     if environment:
         env = _parse_environment(environment)
         if env is None:
-            valid = [e.value for e in DeploymentEnvironment]
-            console.print(
-                Panel(
-                    f"[red]Invalid environment:[/red] '{environment}'\n"
-                    f"[dim]Valid options: {', '.join(valid)}[/dim]",
-                    title="[red]Error[/red]",
-                    border_style="red",
-                )
-            )
+            error_invalid_environment(environment)
             raise typer.Exit(1)
 
     model_status = None
     if status:
         model_status = _parse_status(status)
         if model_status is None:
-            valid = [s.value for s in ModelStatus]
-            console.print(
-                Panel(
-                    f"[red]Invalid status:[/red] '{status}'\n"
-                    f"[dim]Valid options: {', '.join(valid)}[/dim]",
-                    title="[red]Error[/red]",
-                    border_style="red",
-                )
-            )
+            error_invalid_status(status)
             raise typer.Exit(1)
 
     # Fetch models
     try:
         models = get_all_models()
     except DatabaseError as e:
-        console.print(
-            Panel(
-                f"[red]Database error:[/red] {e.details}",
-                title="[red]Error[/red]",
-                border_style="red",
-            )
-        )
+        error_database(e.operation, e.details)
         raise typer.Exit(1)
 
     # Apply filters
@@ -413,18 +385,8 @@ def export_models(
         if model_status:
             filter_desc.append(f"status={model_status.value}")
 
-        msg = "[yellow]No models found"
-        if filter_desc:
-            msg += f" matching filters: {', '.join(filter_desc)}"
-        msg += "[/yellow]"
-
-        console.print(
-            Panel(
-                msg,
-                title="[yellow]Warning[/yellow]",
-                border_style="yellow",
-            )
-        )
+        filter_description = ", ".join(filter_desc) if filter_desc else None
+        warning_no_models(filter_description)
         raise typer.Exit(0)
 
     # Write file
@@ -434,13 +396,7 @@ def export_models(
         else:
             _write_json(file, models, pretty=not compact)
     except IOError as e:
-        console.print(
-            Panel(
-                f"[red]Failed to write file:[/red] {e}",
-                title="[red]Error[/red]",
-                border_style="red",
-            )
-        )
+        error_file_write(str(file), str(e))
         raise typer.Exit(1)
 
     # Build filter description for output

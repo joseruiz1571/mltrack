@@ -22,6 +22,7 @@ from mltrack.core.exceptions import (
     DatabaseError,
 )
 from mltrack.models import RiskTier, DeploymentEnvironment, DataClassification
+from mltrack.cli.error_helpers import error_file_format, error_file_read
 
 console = Console()
 
@@ -401,14 +402,7 @@ def import_models(
     # Determine file type
     suffix = file.suffix.lower()
     if suffix not in [".csv", ".json"]:
-        console.print(
-            Panel(
-                f"[red]Unsupported file type:[/red] '{suffix}'\n\n"
-                "[dim]Supported formats: .csv, .json[/dim]",
-                title="[red]Error[/red]",
-                border_style="red",
-            )
-        )
+        error_file_format(str(file), [".csv", ".json"], suffix)
         raise typer.Exit(1)
 
     # Read file
@@ -419,13 +413,7 @@ def import_models(
         else:
             records = _read_json(file)
     except Exception as e:
-        console.print(
-            Panel(
-                f"[red]Failed to read file:[/red] {e}",
-                title="[red]Error[/red]",
-                border_style="red",
-            )
-        )
+        error_file_read(str(file), str(e))
         raise typer.Exit(1)
 
     if not records:

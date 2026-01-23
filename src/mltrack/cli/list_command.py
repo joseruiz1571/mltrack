@@ -15,6 +15,13 @@ from rich import box
 from mltrack.core.storage import get_all_models
 from mltrack.core.exceptions import DatabaseError
 from mltrack.models import RiskTier, DeploymentEnvironment, ModelStatus, AIModel
+from mltrack.cli.error_helpers import (
+    error_invalid_risk_tier,
+    error_invalid_status,
+    error_invalid_environment,
+    error_database,
+    warning_no_models,
+)
 
 console = Console()
 
@@ -295,20 +302,14 @@ def list_models(
     if risk:
         risk_filter = _parse_risk_tier(risk)
         if risk_filter is None:
-            console.print(
-                f"[red]Invalid risk tier:[/red] '{risk}'. "
-                f"Must be one of: {', '.join(RISK_TIERS)}"
-            )
+            error_invalid_risk_tier(risk)
             raise typer.Exit(1)
 
     status_filter = None
     if status:
         status_filter = _parse_status(status)
         if status_filter is None:
-            console.print(
-                f"[red]Invalid status:[/red] '{status}'. "
-                f"Must be one of: {', '.join(STATUSES)}"
-            )
+            error_invalid_status(status)
             raise typer.Exit(1)
 
     # Fetch models
@@ -319,7 +320,7 @@ def list_models(
             vendor=vendor,
         )
     except DatabaseError as e:
-        console.print(f"[red]Database error:[/red] {e.details}")
+        error_database(e.operation, e.details)
         raise typer.Exit(1)
 
     # Apply environment filter (not supported by get_all_models directly)
@@ -337,10 +338,7 @@ def list_models(
             env_enum = DeploymentEnvironment(env_lower)
             models = [m for m in models if m.deployment_environment == env_enum]
         except ValueError:
-            console.print(
-                f"[red]Invalid environment:[/red] '{environment}'. "
-                f"Must be one of: {', '.join(ENVIRONMENTS)}"
-            )
+            error_invalid_environment(environment)
             raise typer.Exit(1)
 
     # Handle output formats
@@ -365,26 +363,8 @@ def list_models(
         if status:
             filter_parts.append(f"status={status}")
 
-        if filter_parts:
-            console.print(
-                Panel(
-                    f"[yellow]No models found matching filters:[/yellow] {', '.join(filter_parts)}\n\n"
-                    "[dim]Try removing some filters or add models with:[/dim]\n"
-                    "[cyan]mltrack add --interactive[/cyan]",
-                    title="No Results",
-                    border_style="yellow",
-                )
-            )
-        else:
-            console.print(
-                Panel(
-                    "[yellow]No models in inventory.[/yellow]\n\n"
-                    "[dim]Add your first model with:[/dim]\n"
-                    "[cyan]mltrack add --interactive[/cyan]",
-                    title="Empty Inventory",
-                    border_style="yellow",
-                )
-            )
+        filter_description = ", ".join(filter_parts) if filter_parts else None
+        warning_no_models(filter_description)
         return
 
     table = _create_table(models, verbose=verbose)

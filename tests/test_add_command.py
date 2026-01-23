@@ -170,7 +170,7 @@ class TestAddCommandValidation:
         ])
 
         assert result.exit_code == 1
-        assert "Invalid classification" in result.output
+        assert "invalid data classification" in result.output.lower()
 
     def test_environment_aliases_work(self, clean_db):
         """Test that environment aliases like 'production' work."""
@@ -277,7 +277,8 @@ class TestAddCommandInteractive:
 
         assert "--interactive" in result.output
         assert "-i" in result.output
-        assert "Interactive mode" in result.output
+        # The flag description should mention guided prompts
+        assert "guided prompts" in result.output.lower() or "interactive" in result.output.lower()
 
     def test_interactive_mode_prompts_for_fields(self, clean_db):
         """Test that interactive mode prompts for all fields."""

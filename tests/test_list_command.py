@@ -172,7 +172,7 @@ class TestListFilters:
         result = runner.invoke(app, ["list", "--vendor", "nonexistent"])
 
         assert result.exit_code == 0
-        assert "No models found matching filters" in result.output
+        assert "no models" in result.output.lower()
         assert "vendor=nonexistent" in result.output
 
     def test_invalid_risk_tier_filter(self, sample_models):

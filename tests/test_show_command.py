@@ -63,7 +63,8 @@ class TestShowCommand:
 
         assert result.exit_code == 0
         assert "IDENTIFIER" in result.output
-        assert "Model name or ID" in result.output
+        # Help text should mention model name
+        assert "model name" in result.output.lower()
 
     def test_show_model_by_name(self, sample_model):
         """Test showing a model by name."""

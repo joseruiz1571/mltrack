@@ -7,9 +7,14 @@ from rich.table import Table
 from rich.prompt import Confirm
 from rich import box
 
-from mltrack.core.storage import get_model, delete_model, update_model, REVIEW_FREQUENCY
+from mltrack.core.storage import get_model, get_all_models, delete_model, update_model, REVIEW_FREQUENCY
 from mltrack.core.exceptions import ModelNotFoundError, DatabaseError
 from mltrack.models import RiskTier, ModelStatus, AIModel
+from mltrack.cli.error_helpers import (
+    error_model_not_found,
+    error_database,
+    warning_already_decommissioned,
+)
 
 console = Console()
 
@@ -127,28 +132,20 @@ def delete_model_command(
     try:
         model = get_model(identifier)
     except ModelNotFoundError:
-        console.print(
-            Panel(
-                f"[red]Model not found:[/red] '{identifier}'\n\n"
-                "[dim]Use [cyan]mltrack list[/cyan] to see all models in the inventory.[/dim]",
-                title="Not Found",
-                border_style="red",
-            )
-        )
+        # Get available model names for fuzzy matching suggestions
+        try:
+            available_models = [m.model_name for m in get_all_models()]
+        except DatabaseError:
+            available_models = None
+        error_model_not_found(identifier, available_models)
         raise typer.Exit(1)
     except DatabaseError as e:
-        console.print(f"[red]Database error:[/red] {e.details}")
+        error_database(e.operation, e.details)
         raise typer.Exit(1)
 
     # Check if already decommissioned (for soft delete)
     if soft and model.status == ModelStatus.DECOMMISSIONED:
-        console.print(
-            Panel(
-                f"[yellow]Model '[bold]{model.model_name}[/bold]' is already decommissioned.[/yellow]",
-                title="Already Decommissioned",
-                border_style="yellow",
-            )
-        )
+        warning_already_decommissioned(model.model_name)
         raise typer.Exit(0)
 
     # Show model details
@@ -224,5 +221,5 @@ def delete_model_command(
                 )
             )
     except DatabaseError as e:
-        console.print(f"[red]Database error:[/red] {e.details}")
+        error_database(e.operation, e.details)
         raise typer.Exit(1)

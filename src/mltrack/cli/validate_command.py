@@ -13,6 +13,13 @@ from rich import box
 from mltrack.core.storage import get_model, get_all_models, REVIEW_FREQUENCY
 from mltrack.core.exceptions import ModelNotFoundError, DatabaseError
 from mltrack.models import RiskTier, ModelStatus, DeploymentEnvironment, AIModel
+from mltrack.cli.error_helpers import (
+    error_model_not_found,
+    error_invalid_risk_tier,
+    error_database,
+    warning_no_models,
+    info_usage,
+)
 
 console = Console()
 
@@ -330,37 +337,26 @@ def validate_command(
                 model = get_model(model_id)
                 models_to_validate = [model]
             except ModelNotFoundError:
-                console.print(
-                    Panel(
-                        f"[red]Model not found:[/red] '{model_id}'\n\n"
-                        "[dim]Use [cyan]mltrack list[/cyan] to see all models.[/dim]",
-                        title="Not Found",
-                        border_style="red",
-                    )
-                )
+                # Get available model names for fuzzy matching suggestions
+                try:
+                    available_models = [m.model_name for m in get_all_models()]
+                except DatabaseError:
+                    available_models = None
+                error_model_not_found(model_id, available_models)
                 raise typer.Exit(1)
 
         elif risk:
             # Validate by risk tier
             risk_lower = risk.lower()
             if risk_lower not in RISK_TIERS:
-                console.print(
-                    f"[red]Invalid risk tier:[/red] '{risk}'. "
-                    f"Must be one of: {', '.join(RISK_TIERS)}"
-                )
+                error_invalid_risk_tier(risk)
                 raise typer.Exit(1)
 
             risk_tier = RiskTier(risk_lower)
             models_to_validate = get_all_models(risk_tier=risk_tier)
 
             if not models_to_validate:
-                console.print(
-                    Panel(
-                        f"[yellow]No models found with risk tier:[/yellow] {risk.upper()}",
-                        title="No Models",
-                        border_style="yellow",
-                    )
-                )
+                warning_no_models(f"risk tier = {risk.upper()}")
                 raise typer.Exit(0)
 
         elif all_models:
@@ -368,33 +364,24 @@ def validate_command(
             models_to_validate = get_all_models()
 
             if not models_to_validate:
-                console.print(
-                    Panel(
-                        "[yellow]No models in inventory.[/yellow]\n\n"
-                        "[dim]Add models with:[/dim] [cyan]mltrack add --interactive[/cyan]",
-                        title="Empty Inventory",
-                        border_style="yellow",
-                    )
-                )
+                warning_no_models()
                 raise typer.Exit(0)
 
         else:
             # No filter specified - show help
-            console.print(
-                Panel(
-                    "[yellow]Please specify which models to validate:[/yellow]\n\n"
-                    "[cyan]--all[/cyan]              Validate all models\n"
-                    "[cyan]--model-id NAME[/cyan]   Validate specific model\n"
-                    "[cyan]--risk TIER[/cyan]       Validate by risk tier\n\n"
-                    "[dim]Example: mltrack validate --all[/dim]",
-                    title="Usage",
-                    border_style="yellow",
-                )
+            info_usage(
+                "Usage",
+                [
+                    ("--all", "Validate all models"),
+                    ("--model-id NAME", "Validate specific model"),
+                    ("--risk TIER", "Validate by risk tier"),
+                ],
+                example="mltrack validate --all",
             )
             raise typer.Exit(0)
 
     except DatabaseError as e:
-        console.print(f"[red]Database error:[/red] {e.details}")
+        error_database(e.operation, e.details)
         raise typer.Exit(1)
 
     # Run validation
