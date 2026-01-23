@@ -305,7 +305,7 @@ def _import_record(
 def import_models(
     file: Path = typer.Argument(
         ...,
-        help="Path to CSV or JSON file to import",
+        help="Path to CSV or JSON file containing models to import",
         exists=True,
         readable=True,
     ),
@@ -313,53 +313,90 @@ def import_models(
         False,
         "--validate",
         "-v",
-        help="Validate records without importing",
+        help="Check file for errors without importing (dry validation)",
     ),
     update_existing: bool = typer.Option(
         False,
         "--update",
         "-u",
-        help="Update existing models instead of skipping",
+        help="Update existing models if names match (default: skip duplicates)",
     ),
     continue_on_error: bool = typer.Option(
         False,
         "--continue-on-error",
         "-c",
-        help="Continue importing even if some records fail",
+        help="Continue importing remaining records even if some fail",
     ),
     dry_run: bool = typer.Option(
         False,
         "--dry-run",
-        help="Show what would be imported without making changes",
+        help="Show what would happen without making any changes",
     ),
 ) -> None:
     """
-    Import AI models from a CSV or JSON file.
+    Bulk import AI models from a CSV or JSON file.
 
-    Supports field name variations and auto-maps to database schema.
-    Use --validate to check the file before importing.
-
-    \b
-    Required CSV/JSON fields:
-      model_name (or: name, model)
-      vendor (or: provider)
-      risk_tier (or: risk, tier)
-      use_case (or: usecase, description)
-      business_owner (or: owner)
-      technical_owner (or: tech_owner)
-      deployment_date (or: deployed, deploy_date)
+    Automatically maps common field name variations to the database schema.
+    By default, existing models are skipped; use --update to modify them.
 
     \b
-    Optional fields:
-      model_version, deployment_environment, api_endpoint,
-      data_classification, notes
+    [bold cyan]Required Fields (with accepted aliases):[/bold cyan]
+      model_name         [dim]aliases: name, model[/dim]
+      vendor             [dim]aliases: provider[/dim]
+      risk_tier          [dim]aliases: risk, tier, risk_level[/dim]
+      use_case           [dim]aliases: usecase, description[/dim]
+      business_owner     [dim]aliases: owner, businessowner[/dim]
+      technical_owner    [dim]aliases: tech_owner, technicalowner[/dim]
+      deployment_date    [dim]aliases: deployed, deploy_date, deployed_at[/dim]
 
     \b
-    Examples:
+    [bold cyan]Optional Fields:[/bold cyan]
+      model_version, deployment_environment (env), api_endpoint (url),
+      data_classification (classification), notes (comments)
+
+    \b
+    [bold cyan]Duplicate Handling:[/bold cyan]
+      [default]   Skip models that already exist (by name)
+      --update    Update existing models with new values
+
+    \b
+    [bold cyan]Supported Formats:[/bold cyan]
+      CSV        Auto-detects delimiter (comma, semicolon, tab)
+      JSON       Array of objects, or {"models": [...]} format
+
+    \b
+    [bold]Examples:[/bold]
+      [dim]# Import from CSV[/dim]
       mltrack import models.csv
-      mltrack import models.json --validate
-      mltrack import models.csv --update --continue-on-error
+
+      [dim]# Validate file without importing (check for errors)[/dim]
+      mltrack import models.csv --validate
+      mltrack import models.json -v
+
+      [dim]# Update existing models instead of skipping[/dim]
+      mltrack import updates.csv --update
+
+      [dim]# Continue importing even if some records fail[/dim]
+      mltrack import models.csv --continue-on-error
+
+      [dim]# Preview what would be imported[/dim]
       mltrack import models.json --dry-run
+
+      [dim]# Full import with all options[/dim]
+      mltrack import bulk-data.csv --update --continue-on-error
+
+    \b
+    [bold cyan]Workflow Tips:[/bold cyan]
+      1. First run with --validate to check for errors
+      2. Fix any issues in your source file
+      3. Run again without --validate to import
+      4. Use --update for subsequent imports to sync changes
+
+    \b
+    [bold cyan]Related Commands:[/bold cyan]
+      mltrack export template.csv --template   Get empty CSV template
+      mltrack export backup.json               Export current inventory
+      mltrack list --json                      View current models as JSON
     """
     # Determine file type
     suffix = file.suffix.lower()

@@ -20,9 +20,27 @@ from mltrack.cli.validate_command import validate_model, ValidationSummary
 
 console = Console()
 
+REPORT_EPILOG = """
+[bold cyan]Available Reports:[/bold cyan]
+  compliance    Compliance status, violations, and review status
+  inventory     Full model inventory grouped by vendor and risk
+  risk          Risk distribution and concentration analysis
+
+[bold cyan]Output Formats:[/bold cyan]
+  terminal      Rich formatted display (default)
+  csv           Export to CSV file (requires -o)
+  json          Export to JSON file (requires -o)
+
+[bold]Quick Examples:[/bold]
+  mltrack report compliance                      Terminal display
+  mltrack report compliance -f json -o out.json  Export to JSON
+  mltrack report inventory -f csv -o inv.csv     Export to CSV
+"""
+
 report_app = typer.Typer(
-    help="Generate compliance reports.",
+    help="Generate compliance, inventory, and risk reports.",
     no_args_is_help=True,
+    epilog=REPORT_EPILOG,
 )
 
 # Valid output formats
@@ -294,23 +312,49 @@ def compliance_report(
     format: str = typer.Option(
         "terminal",
         "--format", "-f",
-        help=f"Output format: {', '.join(OUTPUT_FORMATS)}",
+        help=f"Output format: {', '.join(OUTPUT_FORMATS)} (csv/json require -o)",
     ),
     output: Optional[Path] = typer.Option(
         None,
         "--output", "-o",
-        help="Output file path (required for csv/json formats)",
+        help="Output file path (required when using csv or json format)",
     ),
 ) -> None:
     """
-    Generate compliance status report.
+    Generate compliance status report for auditors.
 
-    Shows compliance status, violations, and review status for all models.
+    Comprehensive compliance overview including:
+    • Risk tier distribution with percentages
+    • Compliance rate (passed vs failed validation)
+    • Review status (overdue, upcoming, current)
+    • List of non-compliant models with violations
+    • Detailed overdue review list
+
+    Ideal for quarterly compliance reviews and audit documentation.
 
     \b
-    Examples:
+    [bold cyan]Report Sections:[/bold cyan]
+      Risk Distribution     Count and percentage by risk tier
+      Compliance Status     Pass/fail counts and compliance rate
+      Review Status         Overdue, upcoming (30 days), current
+      Non-Compliant Models  Detailed violation list per model
+      Overdue Reviews       Models past their review date
+
+    \b
+    [bold]Examples:[/bold]
+      [dim]# Display in terminal[/dim]
       mltrack report compliance
-      mltrack report compliance -f json -o compliance.json
+
+      [dim]# Export to JSON for audit records[/dim]
+      mltrack report compliance -f json -o compliance-q1-2025.json
+
+      [dim]# Export violations to CSV for spreadsheet analysis[/dim]
+      mltrack report compliance -f csv -o violations.csv
+
+    \b
+    [bold cyan]Related Commands:[/bold cyan]
+      mltrack validate --all   Run compliance checks interactively
+      mltrack reviewed <name>  Record a review to clear violations
     """
     if format not in OUTPUT_FORMATS:
         console.print(
@@ -447,23 +491,49 @@ def inventory_report(
     format: str = typer.Option(
         "terminal",
         "--format", "-f",
-        help=f"Output format: {', '.join(OUTPUT_FORMATS)}",
+        help=f"Output format: {', '.join(OUTPUT_FORMATS)} (csv/json require -o)",
     ),
     output: Optional[Path] = typer.Option(
         None,
         "--output", "-o",
-        help="Output file path (required for csv/json formats)",
+        help="Output file path (required when using csv or json format)",
     ),
 ) -> None:
     """
-    Generate full model inventory report.
+    Generate complete model inventory report.
 
-    Shows all models grouped by vendor and risk tier.
+    Full listing of all AI models organized for easy review:
+    • Summary statistics (total, active, deprecated, decommissioned)
+    • Models grouped by vendor with review status
+    • Models grouped by risk tier with environment info
+
+    Useful for inventory audits and management reporting.
 
     \b
-    Examples:
+    [bold cyan]Report Sections:[/bold cyan]
+      Summary Statistics    Model counts by lifecycle status
+      Models by Vendor      Grouped listing with risk and review status
+      Models by Risk Tier   Critical → Low with vendor and environment
+
+    \b
+    [bold cyan]Export Fields (CSV/JSON):[/bold cyan]
+      All model attributes including ID, dates, owners, notes, timestamps
+
+    \b
+    [bold]Examples:[/bold]
+      [dim]# Display in terminal[/dim]
       mltrack report inventory
+
+      [dim]# Export full inventory to CSV[/dim]
       mltrack report inventory -f csv -o inventory.csv
+
+      [dim]# Export to JSON for integration[/dim]
+      mltrack report inventory -f json -o models.json
+
+    \b
+    [bold cyan]Related Commands:[/bold cyan]
+      mltrack list              Simple model list with filtering
+      mltrack export <file>     Export with filtering options
     """
     if format not in OUTPUT_FORMATS:
         console.print(
@@ -686,24 +756,54 @@ def risk_report(
     format: str = typer.Option(
         "terminal",
         "--format", "-f",
-        help=f"Output format: {', '.join(OUTPUT_FORMATS)}",
+        help=f"Output format: {', '.join(OUTPUT_FORMATS)} (csv/json require -o)",
     ),
     output: Optional[Path] = typer.Option(
         None,
         "--output", "-o",
-        help="Output file path (required for csv/json formats)",
+        help="Output file path (required when using csv or json format)",
     ),
 ) -> None:
     """
     Generate risk distribution and concentration analysis.
 
-    Shows risk tier distribution, high-risk production models,
-    and vendor risk concentration.
+    Risk-focused report for governance committees and risk managers:
+    • Risk tier distribution with review cycle info
+    • High-risk models deployed in production
+    • Models without recent reviews (stale)
+    • Risk concentration by vendor
+
+    Helps identify risk concentrations and governance gaps.
 
     \b
-    Examples:
+    [bold cyan]Report Sections:[/bold cyan]
+      Risk Tier Distribution       Count, percentage, review cycle per tier
+      High-Risk in Production      Critical/High models in prod environment
+      Without Recent Review        Models not reviewed in 180+ days
+      Vendor Risk Concentration    Risk breakdown per vendor
+
+    \b
+    [bold cyan]Key Insights:[/bold cyan]
+      • Identify vendor concentration risk
+      • Spot high-risk production deployments
+      • Find models needing attention
+      • Track risk distribution trends
+
+    \b
+    [bold]Examples:[/bold]
+      [dim]# Display in terminal[/dim]
       mltrack report risk
-      mltrack report risk -f json -o risk.json
+
+      [dim]# Export for risk committee[/dim]
+      mltrack report risk -f json -o risk-analysis.json
+
+      [dim]# Export vendor risk matrix to CSV[/dim]
+      mltrack report risk -f csv -o vendor-risk.csv
+
+    \b
+    [bold cyan]Related Commands:[/bold cyan]
+      mltrack validate --risk critical  Check critical models specifically
+      mltrack dashboard --risk high     Dashboard filtered by risk
     """
     if format not in OUTPUT_FORMATS:
         console.print(

@@ -245,45 +245,80 @@ def validate_command(
     all_models: bool = typer.Option(
         False,
         "--all", "-a",
-        help="Validate all models in the inventory",
+        help="Check all models in the inventory for compliance issues",
     ),
     model_id: Optional[str] = typer.Option(
         None,
         "--model-id", "-m",
-        help="Validate a specific model by name or ID",
+        help="Check a specific model by name or UUID",
     ),
     risk: Optional[str] = typer.Option(
         None,
         "--risk", "-r",
-        help=f"Validate models by risk tier: {', '.join(RISK_TIERS)}",
+        help=f"Check only models with this risk tier: {', '.join(RISK_TIERS)}",
     ),
     verbose: bool = typer.Option(
         False,
         "--verbose", "-v",
-        help="Show all models including passing ones",
+        help="Show all models including those passing validation",
     ),
     json_output: bool = typer.Option(
         False,
         "--json",
-        help="Output results as JSON",
+        help="Output results as JSON (for CI/CD pipelines, scripting)",
     ),
 ) -> None:
     """
-    Validate AI models against governance requirements.
+    Check AI models against governance and compliance requirements.
 
-    Checks compliance with:
-    • Required fields populated
-    • Review schedule (based on risk tier)
-    • Business and technical owners defined
-    • Deployment date for active models
-    • Data classification for production models
+    Validates each model against these rules:
+    • [bold]Required fields[/bold] - All mandatory fields are populated
+    • [bold]Review schedule[/bold] - Model is not overdue for review (based on risk tier)
+    • [bold]Ownership[/bold] - Business and technical owners are defined
+    • [bold]Deployment date[/bold] - Active models have deployment dates
+    • [bold]Data classification[/bold] - Production models have classification set
+
+    Returns exit code 1 if any model fails validation (useful for CI/CD).
 
     \b
-    Examples:
-      mltrack validate --all              # Check all models
-      mltrack validate -m "claude-v4"     # Check specific model
-      mltrack validate --risk critical    # Check critical risk models
-      mltrack validate --all -v           # Show all results including passes
+    [bold cyan]Selection Options (choose one):[/bold cyan]
+      --all        Check all models in inventory
+      --model-id   Check a specific model
+      --risk       Check models of a specific risk tier
+
+    \b
+    [bold cyan]Review Cycles (SR 11-7 Aligned):[/bold cyan]
+      CRITICAL → 30 days     HIGH → 90 days
+      MEDIUM   → 180 days    LOW  → 365 days
+
+    \b
+    [bold]Examples:[/bold]
+      [dim]# Validate all models[/dim]
+      mltrack validate --all
+
+      [dim]# Check a specific model[/dim]
+      mltrack validate -m "claude-sonnet-4"
+      mltrack validate --model-id "fraud-detector"
+
+      [dim]# Check only critical risk models[/dim]
+      mltrack validate --risk critical
+
+      [dim]# Show all results including passing models[/dim]
+      mltrack validate --all --verbose
+      mltrack validate --all -v
+
+      [dim]# JSON output for CI/CD pipelines[/dim]
+      mltrack validate --all --json
+      mltrack validate --all --json | jq '.summary.compliance_rate'
+
+      [dim]# Use in CI/CD (fails pipeline if non-compliant)[/dim]
+      mltrack validate --all --json || echo "Compliance check failed"
+
+    \b
+    [bold cyan]Related Commands:[/bold cyan]
+      mltrack reviewed <name>     Record a review to clear overdue violations
+      mltrack update <name>       Fix missing fields or update classification
+      mltrack report compliance   Generate detailed compliance report
     """
     # Determine which models to validate
     models_to_validate: list[AIModel] = []

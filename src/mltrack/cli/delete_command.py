@@ -69,32 +69,59 @@ def _build_model_summary(model: AIModel) -> Table:
 def delete_model_command(
     identifier: str = typer.Argument(
         ...,
-        help="Model name or ID to delete",
+        help="Model name or UUID to delete (partial ID match supported)",
     ),
     soft: bool = typer.Option(
         False,
         "--soft",
-        help="Soft delete: set status to 'decommissioned' instead of removing",
+        help="Decommission instead of delete: preserves the model with status=decommissioned",
     ),
     yes: bool = typer.Option(
         False,
         "--yes", "-y",
-        help="Skip confirmation prompt (for automation)",
+        help="Skip confirmation prompt and proceed immediately (for automation)",
     ),
 ) -> None:
     """
-    Delete an AI model from the inventory.
+    Remove an AI model from the inventory.
 
-    By default, this permanently removes the model from the database.
-    Use --soft to mark the model as 'decommissioned' instead (recommended
-    for audit trail preservation).
+    [bold]Two deletion modes:[/bold]
+
+    [bold cyan]Hard Delete (default):[/bold cyan]
+      Permanently removes the model from the database. This action cannot
+      be undone. Use when the model record is no longer needed.
+
+    [bold cyan]Soft Delete (--soft, recommended):[/bold cyan]
+      Sets the model status to 'decommissioned' but keeps the record.
+      Recommended for audit trail preservation and compliance documentation.
+      Decommissioned models are hidden from active listings but remain queryable.
 
     \b
-    Examples:
-      mltrack delete "old-model"              # Hard delete with confirmation
-      mltrack delete "old-model" --soft       # Soft delete (decommission)
-      mltrack delete "old-model" -y           # Skip confirmation
-      mltrack delete abc123 --soft -y         # Soft delete by ID, no prompt
+    [bold]Examples:[/bold]
+      [dim]# Hard delete with confirmation prompt[/dim]
+      mltrack delete "old-model"
+
+      [dim]# Soft delete (decommission) - recommended for audit trail[/dim]
+      mltrack delete "old-model" --soft
+
+      [dim]# Skip confirmation (for scripts/automation)[/dim]
+      mltrack delete "old-model" -y
+      mltrack delete "old-model" --soft -y
+
+      [dim]# Delete by partial UUID[/dim]
+      mltrack delete abc123 --soft
+
+    \b
+    [bold cyan]Best Practices:[/bold cyan]
+      • Use --soft for models that were in production (preserves audit trail)
+      • Use hard delete only for test models or data cleanup
+      • Decommissioned models can still be viewed with 'mltrack show'
+      • Use 'mltrack list --status decommissioned' to see decommissioned models
+
+    \b
+    [bold cyan]Related Commands:[/bold cyan]
+      mltrack update <name> --status deprecated  Mark as deprecated first
+      mltrack list --status decommissioned       View decommissioned models
     """
     # First, fetch the existing model
     try:

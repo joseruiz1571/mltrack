@@ -46,37 +46,63 @@ def _parse_date(value: str) -> date:
 def reviewed_command(
     identifier: str = typer.Argument(
         ...,
-        help="Model name or ID that was reviewed",
+        help="Model name or UUID that was reviewed",
     ),
     review_date: str = typer.Option(
         "today",
         "--date", "-d",
-        help="Review date (YYYY-MM-DD or 'today')",
+        help="Date the review was completed: YYYY-MM-DD or 'today' (default: today)",
     ),
     notes: Optional[str] = typer.Option(
         None,
         "--notes", "-n",
-        help="Optional notes about the review",
+        help="Review notes (appended to existing notes with timestamp)",
     ),
 ) -> None:
     """
-    Record that a model has been reviewed.
+    Record completion of a model review.
 
-    Sets last_review_date and automatically recalculates next_review_date
-    based on the model's risk tier.
+    Updates the model's last_review_date and automatically calculates
+    the next_review_date based on the model's risk tier. Notes are
+    timestamped and appended to existing notes.
 
-    \b
-    Review cycles (SR 11-7 aligned):
-      • CRITICAL: 30 days
-      • HIGH: 90 days
-      • MEDIUM: 180 days
-      • LOW: 365 days
+    This is the primary way to clear "overdue for review" compliance
+    violations shown by 'mltrack validate'.
 
     \b
-    Examples:
-      mltrack reviewed "claude-sonnet-4"                    # Reviewed today
-      mltrack reviewed "claude-sonnet-4" --date 2025-01-15  # Specific date
-      mltrack reviewed "claude-sonnet-4" -d today -n "Quarterly review completed"
+    [bold cyan]Review Cycles (SR 11-7 Aligned):[/bold cyan]
+      CRITICAL → 30 days     HIGH → 90 days
+      MEDIUM   → 180 days    LOW  → 365 days
+
+    \b
+    [bold cyan]What Happens:[/bold cyan]
+      1. Sets last_review_date to the specified date
+      2. Calculates next_review_date based on risk tier
+      3. Appends notes with [date] prefix to model notes
+      4. Clears any "review overdue" compliance violations
+
+    \b
+    [bold]Examples:[/bold]
+      [dim]# Record review completed today[/dim]
+      mltrack reviewed "claude-sonnet-4"
+      mltrack reviewed "fraud-detector"
+
+      [dim]# Record review with specific date[/dim]
+      mltrack reviewed "claude-sonnet-4" --date 2025-01-15
+      mltrack reviewed "gpt-4-turbo" -d 2025-01-20
+
+      [dim]# Record review with notes[/dim]
+      mltrack reviewed "claude-sonnet-4" -n "Quarterly security review completed"
+      mltrack reviewed "credit-model" -d 2025-01-15 -n "Annual audit - no issues found"
+
+      [dim]# Use 'today' explicitly[/dim]
+      mltrack reviewed "model-name" --date today --notes "Passed all checks"
+
+    \b
+    [bold cyan]Related Commands:[/bold cyan]
+      mltrack validate --all       Check which models need review
+      mltrack show <name>          View model's current review schedule
+      mltrack report compliance    See review status for all models
     """
     # Parse the review date
     try:

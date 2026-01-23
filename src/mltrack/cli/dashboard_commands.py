@@ -504,13 +504,13 @@ def show_dashboard(
         False,
         "--watch",
         "-w",
-        help="Auto-refresh dashboard every 30 seconds.",
+        help="Enable auto-refresh mode (updates in place, press Ctrl+C to exit)",
     ),
     refresh_interval: int = typer.Option(
         30,
         "--interval",
         "-i",
-        help="Refresh interval in seconds (with --watch).",
+        help="Seconds between refreshes in watch mode (5-300, default: 30)",
         min=5,
         max=300,
     ),
@@ -518,41 +518,91 @@ def show_dashboard(
         None,
         "--risk",
         "-r",
-        help="Filter by risk tier (critical, high, medium, low).",
+        help="Show only models with this risk tier (critical/high/medium/low)",
     ),
     vendor: str | None = typer.Option(
         None,
         "--vendor",
         "-V",
-        help="Filter by vendor name (case-insensitive).",
+        help="Show only models from this vendor (case-insensitive)",
     ),
     environment: str | None = typer.Option(
         None,
         "--environment",
         "-e",
-        help="Filter by environment (prod, staging, dev).",
+        help="Show only models in this environment (prod/staging/dev)",
     ),
 ) -> None:
-    """Display the compliance dashboard with key metrics.
+    """
+    Display an interactive compliance dashboard.
 
-    Shows a real-time overview of your AI model inventory including:
+    Shows a real-time overview of your AI model inventory with:
 
-    - Total models and risk distribution
-    - Compliance percentage and overdue reviews
-    - Recent additions and upcoming reviews
-    - High-risk models in production
-    - Distribution charts by vendor and environment
+    \b
+    [bold cyan]Top Section - Summary Metrics:[/bold cyan]
+      • Total models and active count
+      • Compliance percentage
+      • Overdue review count
+      • Risk tier distribution
 
-    Use filters to focus on specific subsets of your model inventory.
+    \b
+    [bold cyan]Middle Section - Key Lists:[/bold cyan]
+      • Recent additions (last 5 models added)
+      • Reviews needed in next 30 days
+      • High/Critical risk models in production
 
-    Examples:
-        mltrack dashboard
-        mltrack dashboard --watch
-        mltrack dashboard -w --interval 60
-        mltrack dashboard --risk critical
-        mltrack dashboard --vendor anthropic
-        mltrack dashboard --environment prod
-        mltrack dashboard --risk high --environment prod
+    \b
+    [bold cyan]Bottom Section - Distribution Charts:[/bold cyan]
+      • Models by vendor (bar chart)
+      • Models by environment (bar chart)
+
+    \b
+    [bold cyan]Watch Mode:[/bold cyan]
+      Use --watch to enable auto-refresh. The dashboard updates in place
+      at the specified interval. Press Ctrl+C to exit.
+
+    \b
+    [bold cyan]Filters:[/bold cyan]
+      Filters can be combined to focus on specific model subsets.
+      All metrics update to reflect the filtered view.
+
+    \b
+    [bold]Examples:[/bold]
+      [dim]# View dashboard (one-time)[/dim]
+      mltrack dashboard
+
+      [dim]# Auto-refresh mode (default 30 seconds)[/dim]
+      mltrack dashboard --watch
+      mltrack dashboard -w
+
+      [dim]# Custom refresh interval[/dim]
+      mltrack dashboard --watch --interval 60
+      mltrack dashboard -w -i 10
+
+      [dim]# Filter by risk tier[/dim]
+      mltrack dashboard --risk critical
+      mltrack dashboard -r high
+
+      [dim]# Filter by vendor[/dim]
+      mltrack dashboard --vendor anthropic
+      mltrack dashboard --vendor "In-house"
+
+      [dim]# Filter by environment[/dim]
+      mltrack dashboard --environment prod
+      mltrack dashboard -e staging
+
+      [dim]# Combine filters[/dim]
+      mltrack dashboard --risk critical --environment prod
+      mltrack dashboard -r high -V openai
+
+      [dim]# Watch with filters[/dim]
+      mltrack dashboard --watch --risk critical --environment prod
+
+    \b
+    [bold cyan]Related Commands:[/bold cyan]
+      mltrack validate --all     See detailed compliance violations
+      mltrack report compliance  Generate exportable compliance report
+      mltrack list               See full model list
     """
     if ctx.invoked_subcommand is not None:
         return

@@ -226,7 +226,7 @@ def sample_data(
         20,
         "--count",
         "-n",
-        help="Number of sample models to generate",
+        help="Number of sample models to generate (1-100, default: 20)",
         min=1,
         max=100,
     ),
@@ -234,36 +234,73 @@ def sample_data(
         False,
         "--clear",
         "-c",
-        help="Delete all existing models before generating samples",
+        help="Delete all existing models before generating new samples",
     ),
     overdue_percent: int = typer.Option(
         25,
         "--overdue-percent",
-        help="Percentage of models that should be overdue for review (0-100)",
+        help="Percentage of models to make overdue for review (0-100, default: 25)",
         min=0,
         max=100,
     ),
 ) -> None:
     """
-    Generate realistic sample data for demos.
+    Generate realistic sample data for demos and testing.
 
-    Creates a mix of models with various vendors, risk tiers, and compliance
-    states suitable for demonstrating MLTrack's governance capabilities.
-
-    \b
-    Features:
-      - Mix of vendors (Anthropic, OpenAI, AWS, Azure, In-house, etc.)
-      - Realistic financial services use cases
-      - Appropriate risk tier distribution
-      - Some models overdue for review (to demo validation)
-      - Various deployment environments
+    Creates AI models with realistic financial services use cases,
+    various vendors, risk tiers, and compliance states. Perfect for
+    demonstrating MLTrack's governance capabilities.
 
     \b
-    Examples:
-      mltrack sample-data                    # Generate 20 sample models
-      mltrack sample-data --count 50         # Generate 50 sample models
-      mltrack sample-data --clear            # Clear existing data first
-      mltrack sample-data --overdue-percent 40  # 40% overdue for review
+    [bold cyan]Generated Data Includes:[/bold cyan]
+      [bold]Vendors:[/bold]      Anthropic, OpenAI, AWS, Azure, Google, In-house,
+                   Cohere, Meta
+      [bold]Risk Tiers:[/bold]   Mix across Critical, High, Medium, Low
+      [bold]Use Cases:[/bold]    26+ realistic financial services scenarios
+      [bold]Environments:[/bold] Production, Staging, Development
+      [bold]Compliance:[/bold]   Mix of compliant and overdue models
+
+    \b
+    [bold cyan]Financial Services Use Cases:[/bold cyan]
+      • Trading signal generation (Critical)
+      • Credit decisioning, fraud detection (Critical)
+      • Customer service chatbots (High)
+      • KYC verification, AML monitoring (High)
+      • Document summarization (Medium)
+      • Developer tools, code assistance (Low)
+
+    \b
+    [bold cyan]Options:[/bold cyan]
+      --count, -n         Number of models to generate (default: 20)
+      --clear, -c         Remove existing data first (fresh start)
+      --overdue-percent   Control how many models are overdue (default: 25%)
+
+    \b
+    [bold]Examples:[/bold]
+      [dim]# Generate 20 sample models (default)[/dim]
+      mltrack sample-data
+
+      [dim]# Generate more models[/dim]
+      mltrack sample-data --count 50
+      mltrack sample-data -n 100
+
+      [dim]# Start fresh (clear existing data first)[/dim]
+      mltrack sample-data --clear
+      mltrack sample-data -c -n 30
+
+      [dim]# Control compliance distribution[/dim]
+      mltrack sample-data --overdue-percent 50   [dim]# Half overdue[/dim]
+      mltrack sample-data --overdue-percent 0    [dim]# All compliant[/dim]
+
+      [dim]# Demo setup: fresh start with 30 models, 40% overdue[/dim]
+      mltrack sample-data --clear --count 30 --overdue-percent 40
+
+    \b
+    [bold cyan]After Generating:[/bold cyan]
+      mltrack dashboard           View the dashboard with sample data
+      mltrack validate --all      See compliance violations
+      mltrack list                Browse the generated models
+      mltrack report compliance   Generate compliance report
     """
     overdue_probability = overdue_percent / 100.0
 

@@ -190,95 +190,127 @@ def _build_comparison_table(model: AIModel, updates: dict) -> Table:
 def update_model_command(
     identifier: str = typer.Argument(
         ...,
-        help="Model name or ID to update",
+        help="Model name or UUID to update (partial ID match supported)",
     ),
     name: Optional[str] = typer.Option(
         None,
         "--name", "-n",
-        help="New model name",
+        help="Rename the model (must be unique)",
     ),
     vendor: Optional[str] = typer.Option(
         None,
         "--vendor",
-        help="New vendor",
+        help="Change the vendor/provider",
     ),
     version: Optional[str] = typer.Option(
         None,
         "--version",
-        help="New model version",
+        help="Update the model version identifier",
     ),
     risk_tier: Optional[str] = typer.Option(
         None,
         "--risk-tier", "-r",
-        help=f"New risk tier: {', '.join(RISK_TIERS)}",
+        help=f"Change risk classification (auto-updates review cycle): {', '.join(RISK_TIERS)}",
     ),
     use_case: Optional[str] = typer.Option(
         None,
         "--use-case", "-u",
-        help="New use case description",
+        help="Update the business use case description",
     ),
     business_owner: Optional[str] = typer.Option(
         None,
         "--business-owner", "-b",
-        help="New business owner",
+        help="Change the accountable business stakeholder",
     ),
     technical_owner: Optional[str] = typer.Option(
         None,
         "--technical-owner", "-t",
-        help="New technical owner",
+        help="Change the technical owner/team",
     ),
     deployment_date: Optional[str] = typer.Option(
         None,
         "--deployment-date", "-d",
-        help="New deployment date (YYYY-MM-DD)",
+        help="Correct the deployment date (YYYY-MM-DD format)",
     ),
     environment: Optional[str] = typer.Option(
         None,
         "--environment", "-e",
-        help=f"New environment: {', '.join(ENVIRONMENTS)}",
+        help=f"Change deployment environment: {', '.join(ENVIRONMENTS)}",
     ),
     api_endpoint: Optional[str] = typer.Option(
         None,
         "--api-endpoint",
-        help="New API endpoint URL",
+        help="Update the API endpoint URL",
     ),
     data_classification: Optional[str] = typer.Option(
         None,
         "--data-classification",
-        help=f"New data classification: {', '.join(DATA_CLASSIFICATIONS)}",
+        help=f"Set data sensitivity level: {', '.join(DATA_CLASSIFICATIONS)}",
     ),
     status: Optional[str] = typer.Option(
         None,
         "--status", "-s",
-        help=f"New status: {', '.join(STATUSES)}",
+        help=f"Change lifecycle status: {', '.join(STATUSES)}",
     ),
     last_review_date: Optional[str] = typer.Option(
         None,
         "--last-review-date",
-        help="Set last review date (YYYY-MM-DD)",
+        help="Manually set last review date (YYYY-MM-DD) - prefer 'mltrack reviewed' instead",
     ),
     notes: Optional[str] = typer.Option(
         None,
         "--notes",
-        help="New notes (replaces existing)",
+        help="Replace notes with new content (for appending, edit directly)",
     ),
     yes: bool = typer.Option(
         False,
         "--yes", "-y",
-        help="Skip confirmation prompt (for automation)",
+        help="Skip confirmation prompt and apply changes immediately",
     ),
 ) -> None:
     """
-    Update an existing AI model in the inventory.
+    Modify attributes of an existing AI model.
 
-    Specify the model by name or ID, then provide the fields to update.
-    Only specified fields will be changed; others remain unchanged.
+    Specify the model by name or ID, then provide one or more fields to change.
+    Shows a before/after comparison before applying changes.
+
+    [bold]Note:[/bold] Only specified fields are modified; all others remain unchanged.
 
     \b
-    Examples:
+    [bold cyan]Common Updates:[/bold cyan]
+      --risk-tier     Upgrade/downgrade risk (auto-updates review schedule)
+      --status        Mark as deprecated or decommissioned
+      --environment   Move between dev/staging/prod
+      --business-owner / --technical-owner  Transfer ownership
+
+    \b
+    [bold cyan]Special Behavior:[/bold cyan]
+      • Changing --risk-tier automatically recalculates the next review date
+      • Use 'mltrack reviewed' instead of --last-review-date to properly record reviews
+      • Use 'mltrack delete --soft' instead of --status decommissioned for audit trail
+
+    \b
+    [bold]Examples:[/bold]
+      [dim]# Upgrade risk tier (recalculates review schedule)[/dim]
       mltrack update "claude-sonnet-4" --risk-tier critical
-      mltrack update "claude-sonnet-4" --status deprecated --notes "Replaced by v5"
-      mltrack update abc123 --vendor openai -y
+
+      [dim]# Mark model as deprecated with notes[/dim]
+      mltrack update "old-model" --status deprecated --notes "Replaced by v2"
+
+      [dim]# Transfer ownership[/dim]
+      mltrack update "fraud-detector" -b "New Owner (Risk)" -t "New Team"
+
+      [dim]# Promote to production[/dim]
+      mltrack update "chatbot-v2" --environment prod --data-classification confidential
+
+      [dim]# Skip confirmation for automation[/dim]
+      mltrack update "model-name" --vendor "New Vendor" -y
+
+    \b
+    [bold cyan]Related Commands:[/bold cyan]
+      mltrack show <name>       View current model details
+      mltrack reviewed <name>   Record a model review
+      mltrack delete <name>     Remove or decommission a model
     """
     # First, fetch the existing model
     try:

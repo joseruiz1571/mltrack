@@ -209,51 +209,86 @@ def list_models(
     risk: Optional[str] = typer.Option(
         None,
         "--risk", "-r",
-        help=f"Filter by risk tier: {', '.join(RISK_TIERS)}",
+        help=f"Show only models with this risk tier: {', '.join(RISK_TIERS)}",
     ),
     vendor: Optional[str] = typer.Option(
         None,
         "--vendor",
-        help="Filter by vendor name",
+        help="Show only models from this vendor (case-insensitive match)",
     ),
     environment: Optional[str] = typer.Option(
         None,
         "--environment", "-e",
-        help=f"Filter by environment: {', '.join(ENVIRONMENTS)}",
+        help=f"Show only models in this environment: {', '.join(ENVIRONMENTS)} (aliases: production, development)",
     ),
     status: Optional[str] = typer.Option(
         None,
         "--status", "-s",
-        help=f"Filter by status: {', '.join(STATUSES)}",
+        help=f"Show only models with this status: {', '.join(STATUSES)}",
     ),
     verbose: bool = typer.Option(
         False,
         "--verbose", "-v",
-        help="Show all fields in table",
+        help="Show all fields including IDs, owners, versions, and review dates",
     ),
     json_output: bool = typer.Option(
         False,
         "--json",
-        help="Output as JSON (for scripting)",
+        help="Output as JSON array (for scripting, piping to jq, etc.)",
     ),
     output: Optional[Path] = typer.Option(
         None,
         "--output", "-o",
-        help="Export to CSV file",
+        help="Export results to CSV file instead of displaying",
     ),
 ) -> None:
     """
-    List all AI models in the inventory.
+    Display AI models in the inventory with optional filtering.
+
+    By default shows a compact table with key fields. Use filters to narrow
+    results or combine multiple filters for precise queries.
 
     \b
-    Examples:
-      mltrack list                    # List all models
-      mltrack list --risk high        # Filter by risk tier
-      mltrack list --vendor anthropic # Filter by vendor
-      mltrack list --status active    # Filter by status
-      mltrack list -v                 # Verbose output
-      mltrack list --json             # JSON output
-      mltrack list -o models.csv      # Export to CSV
+    [bold cyan]Filters (can be combined):[/bold cyan]
+      --risk        Filter by risk tier (critical/high/medium/low)
+      --vendor      Filter by vendor name (case-insensitive)
+      --environment Filter by deployment environment (prod/staging/dev)
+      --status      Filter by lifecycle status (active/deprecated/decommissioned)
+
+    \b
+    [bold cyan]Output Formats:[/bold cyan]
+      [default]     Rich table in terminal
+      --verbose     Extended table with all fields
+      --json        JSON array for scripting
+      --output      Export to CSV file
+
+    \b
+    [bold]Examples:[/bold]
+      [dim]# List all models[/dim]
+      mltrack list
+
+      [dim]# Filter by risk tier[/dim]
+      mltrack list --risk critical
+      mltrack list -r high
+
+      [dim]# Filter by vendor (case-insensitive)[/dim]
+      mltrack list --vendor anthropic
+      mltrack list --vendor "In-house"
+
+      [dim]# Combine filters[/dim]
+      mltrack list --risk high --environment prod
+      mltrack list --vendor openai --status active
+
+      [dim]# Verbose output with all fields[/dim]
+      mltrack list -v
+
+      [dim]# Export to CSV[/dim]
+      mltrack list -o inventory.csv
+      mltrack list --risk critical -o critical-models.csv
+
+      [dim]# JSON for scripting[/dim]
+      mltrack list --json
+      mltrack list --json | jq '.[].model_name'
     """
     # Parse and validate filters
     risk_filter = None

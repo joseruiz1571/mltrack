@@ -257,16 +257,37 @@ def _build_model_display(model: AIModel) -> None:
 def show_model(
     identifier: str = typer.Argument(
         ...,
-        help="Model name or ID to display",
+        help="Model name or UUID to display (partial ID match supported)",
     ),
 ) -> None:
     """
-    Show detailed information about a specific AI model.
+    Display comprehensive details for a specific AI model.
+
+    Shows all model attributes organized in sections:
+    • Identity & Classification (ID, vendor, risk tier, status)
+    • Use Case description
+    • Ownership (business and technical owners)
+    • Deployment (date, environment, API endpoint)
+    • Review Schedule (last/next review, cycle length)
+    • Notes and metadata
+
+    The model can be specified by exact name or partial UUID match.
 
     \b
-    Examples:
-      mltrack show claude-sonnet-4       # Show by name
-      mltrack show 34be9c1a-491c-4dff    # Show by ID (partial match)
+    [bold]Examples:[/bold]
+      [dim]# Show by model name[/dim]
+      mltrack show claude-sonnet-4
+      mltrack show "fraud-detection-v2"
+
+      [dim]# Show by partial UUID (first 8+ characters)[/dim]
+      mltrack show 34be9c1a
+      mltrack show 34be9c1a-491c-4dff
+
+    \b
+    [bold cyan]Related Commands:[/bold cyan]
+      mltrack list              See all models to find names/IDs
+      mltrack update <name>     Modify this model's attributes
+      mltrack reviewed <name>   Record a review for this model
     """
     try:
         model = get_model(identifier)

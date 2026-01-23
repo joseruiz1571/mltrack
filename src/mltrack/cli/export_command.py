@@ -201,63 +201,108 @@ def _write_template(file_path: Path) -> None:
 def export_models(
     file: Path = typer.Argument(
         ...,
-        help="Output file path (.csv or .json)",
+        help="Output file path with .csv or .json extension",
     ),
     risk: str | None = typer.Option(
         None,
         "--risk",
         "-r",
-        help="Filter by risk tier (critical, high, medium, low)",
+        help="Export only models with this risk tier (critical/high/medium/low)",
     ),
     vendor: str | None = typer.Option(
         None,
         "--vendor",
         "-V",
-        help="Filter by vendor name (case-insensitive)",
+        help="Export only models from this vendor (case-insensitive match)",
     ),
     environment: str | None = typer.Option(
         None,
         "--environment",
         "-e",
-        help="Filter by environment (prod, staging, dev)",
+        help="Export only models in this environment (prod/staging/dev)",
     ),
     status: str | None = typer.Option(
         None,
         "--status",
         "-s",
-        help="Filter by status (active, deprecated, decommissioned)",
+        help="Export only models with this status (active/deprecated/decommissioned)",
     ),
     template: bool = typer.Option(
         False,
         "--template",
         "-t",
-        help="Export empty CSV template with headers only",
+        help="Create empty CSV with headers only (for manual data entry)",
     ),
     machine_headers: bool = typer.Option(
         False,
         "--machine-headers",
-        help="Use machine-readable field names as CSV headers (for re-import)",
+        help="Use database field names as CSV headers (for re-import compatibility)",
     ),
     compact: bool = typer.Option(
         False,
         "--compact",
-        help="Compact JSON output (no indentation)",
+        help="Minified JSON output without indentation (smaller file size)",
     ),
 ) -> None:
     """
-    Export AI models to a CSV or JSON file.
+    Export AI models to CSV or JSON file.
 
-    By default exports all models. Use filters to export a subset.
+    Exports all models by default. Use filters to export specific subsets.
+    File format is determined by the file extension (.csv or .json).
 
     \b
-    Examples:
+    [bold cyan]Output Formats:[/bold cyan]
+      CSV     Human-readable headers by default, 17 columns
+      JSON    Pretty-printed with metadata, includes export timestamp
+
+    \b
+    [bold cyan]Filters (can be combined):[/bold cyan]
+      --risk        Export specific risk tier
+      --vendor      Export specific vendor
+      --environment Export specific environment
+      --status      Export specific lifecycle status
+
+    \b
+    [bold cyan]CSV Options:[/bold cyan]
+      [default]          Human-readable headers ("Model Name", "Risk Tier", etc.)
+      --machine-headers  Database field names (model_name, risk_tier, etc.)
+      --template         Empty file with headers only for manual entry
+
+    \b
+    [bold]Examples:[/bold]
+      [dim]# Export all models[/dim]
       mltrack export inventory.csv
-      mltrack export inventory.json
-      mltrack export high-risk.csv --risk high
-      mltrack export prod-models.json --environment prod
-      mltrack export anthropic.csv --vendor anthropic
+      mltrack export backup.json
+
+      [dim]# Export with filters[/dim]
+      mltrack export critical-models.csv --risk critical
+      mltrack export production.json --environment prod
+      mltrack export anthropic-models.csv --vendor anthropic
+      mltrack export active.csv --status active
+
+      [dim]# Combine multiple filters[/dim]
+      mltrack export high-risk-prod.csv --risk high --environment prod
+
+      [dim]# Create template for manual data entry[/dim]
       mltrack export template.csv --template
+
+      [dim]# Export for re-import (machine-readable headers)[/dim]
       mltrack export backup.csv --machine-headers
+
+      [dim]# Compact JSON (smaller file)[/dim]
+      mltrack export backup.json --compact
+
+    \b
+    [bold cyan]Workflow Tips:[/bold cyan]
+      • Use --template to get a blank spreadsheet for adding new models
+      • Use --machine-headers when exporting for later re-import
+      • JSON exports include an 'exported_at' timestamp for tracking
+
+    \b
+    [bold cyan]Related Commands:[/bold cyan]
+      mltrack import <file>    Import from CSV/JSON
+      mltrack list --json      Quick JSON output to stdout
+      mltrack report inventory Generate formatted inventory report
     """
     # Determine file type
     suffix = file.suffix.lower()

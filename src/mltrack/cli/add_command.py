@@ -388,89 +388,109 @@ def add_model(
     interactive: bool = typer.Option(
         False,
         "--interactive", "-i",
-        help="Interactive mode with guided prompts",
+        help="Launch guided prompts to enter model details step-by-step",
     ),
     name: Optional[str] = typer.Option(
         None,
         "--name", "-n",
-        help="Unique name for the model (e.g., 'fraud-detection-v2')",
+        help="Unique identifier for the model (e.g., 'fraud-detection-v2', 'claude-sonnet-4')",
     ),
     vendor: Optional[str] = typer.Option(
         None,
         "--vendor",
-        help="Model vendor (e.g., 'anthropic', 'openai', 'in-house')",
+        help="Model provider or source (e.g., 'Anthropic', 'OpenAI', 'AWS', 'In-house')",
     ),
     risk_tier: Optional[str] = typer.Option(
         None,
         "--risk-tier", "-r",
-        help=f"Risk classification: {', '.join(RISK_TIERS)}",
+        help=f"Risk classification that determines review frequency: {', '.join(RISK_TIERS)}",
     ),
     use_case: Optional[str] = typer.Option(
         None,
         "--use-case", "-u",
-        help="Business use case description",
+        help="Business purpose description (e.g., 'Customer service chatbot for financial advice')",
     ),
     business_owner: Optional[str] = typer.Option(
         None,
         "--business-owner", "-b",
-        help="Business owner (person/team accountable)",
+        help="Accountable stakeholder with name and team (e.g., 'Jane Smith (Product)')",
     ),
     technical_owner: Optional[str] = typer.Option(
         None,
         "--technical-owner", "-t",
-        help="Technical owner (person/team maintaining)",
+        help="Technical team or person maintaining the model (e.g., 'ML Platform Team')",
     ),
     deployment_date: Optional[str] = typer.Option(
         None,
         "--deployment-date", "-d",
-        help="Deployment date (YYYY-MM-DD)",
+        help="Date model was deployed in ISO format (YYYY-MM-DD, e.g., '2025-01-15')",
     ),
     version: Optional[str] = typer.Option(
         None,
         "--version",
-        help="Model version (e.g., '1.0.0', '20250514')",
+        help="Model version identifier (e.g., '1.0.0', '20250514', 'gpt-4-0125-preview')",
     ),
     environment: Optional[str] = typer.Option(
         None,
         "--environment", "-e",
-        help=f"Deployment environment: {', '.join(ENVIRONMENTS)}",
+        help=f"Deployment target: {', '.join(ENVIRONMENTS)} (aliases: production, development also work)",
     ),
     api_endpoint: Optional[str] = typer.Option(
         None,
         "--api-endpoint",
-        help="API endpoint URL",
+        help="API endpoint URL where the model is accessible",
     ),
     data_classification: Optional[str] = typer.Option(
         None,
         "--data-classification",
-        help=f"Data sensitivity: {', '.join(DATA_CLASSIFICATIONS)}",
+        help=f"Data sensitivity level: {', '.join(DATA_CLASSIFICATIONS)} (required for prod if auditing)",
     ),
     notes: Optional[str] = typer.Option(
         None,
         "--notes",
-        help="Additional notes",
+        help="Additional context, deployment notes, or compliance remarks",
     ),
 ) -> None:
     """
-    Add a new AI model to the inventory.
+    Register a new AI model in the governance inventory.
 
-    Use --interactive (-i) for guided prompts, or provide all required flags
-    for scripting/automation.
+    Two modes are available:
 
-    \b
-    Required fields:
-      --name, --vendor, --risk-tier, --use-case,
-      --business-owner, --technical-owner, --deployment-date
-
-    \b
-    Review cycles (SR 11-7 aligned):
-      • CRITICAL: 30 days   • HIGH: 90 days
-      • MEDIUM: 180 days    • LOW: 365 days
-
-    \b
-    Examples:
+    [bold]Interactive Mode (Recommended for first-time users):[/bold]
       mltrack add --interactive
-      mltrack add -n "claude-v4" --vendor anthropic -r high ...
+      Walks you through each field with prompts and validation.
+
+    [bold]Flag Mode (For scripting/automation):[/bold]
+      Provide all required fields via command-line flags.
+
+    \b
+    [bold cyan]Required Fields:[/bold cyan]
+      --name              Unique model identifier
+      --vendor            Model provider
+      --risk-tier         Risk classification (critical/high/medium/low)
+      --use-case          Business purpose description
+      --business-owner    Accountable stakeholder
+      --technical-owner   Technical team/person
+      --deployment-date   Deployment date (YYYY-MM-DD)
+
+    \b
+    [bold cyan]Review Cycles (SR 11-7 Aligned):[/bold cyan]
+      CRITICAL → 30 days     HIGH → 90 days
+      MEDIUM   → 180 days    LOW  → 365 days
+
+    \b
+    [bold]Examples:[/bold]
+      [dim]# Interactive mode with guided prompts[/dim]
+      mltrack add --interactive
+
+      [dim]# Full command for scripting[/dim]
+      mltrack add -n "claude-sonnet-4" --vendor Anthropic -r high \\
+        -u "Customer service chatbot" -b "Jane Smith (Product)" \\
+        -t "ML Platform Team" -d 2025-01-15 -e prod
+
+      [dim]# Minimal required fields[/dim]
+      mltrack add -n "gpt-4-turbo" --vendor OpenAI -r critical \\
+        -u "Trading signals" -b "Trading Desk" -t "Quant Team" -d 2024-06-01
     """
     if interactive:
         # Interactive mode
