@@ -9,8 +9,10 @@ from rich.table import Table
 from rich import box
 
 from mltrack.core.storage import get_model, get_all_models, REVIEW_FREQUENCY
+from mltrack.core.review_storage import get_reviews_for_model
 from mltrack.core.exceptions import ModelNotFoundError, DatabaseError
 from mltrack.models import RiskTier, ModelStatus, AIModel
+from mltrack.models.model_review import ReviewOutcome
 from mltrack.cli.error_helpers import error_model_not_found, error_database
 
 console = Console()
@@ -221,6 +223,53 @@ def _build_model_display(model: AIModel) -> None:
         title_align="left",
         border_style="blue",
     ))
+
+    # Review History (from audit trail)
+    try:
+        reviews = get_reviews_for_model(model.id)
+    except Exception:
+        reviews = []
+
+    review_history_table = Table(
+        show_header=True,
+        box=box.SIMPLE,
+        padding=(0, 1),
+    )
+    review_history_table.add_column("Date", style="cyan", width=12)
+    review_history_table.add_column("Outcome", width=10)
+    review_history_table.add_column("Reviewer", width=18)
+    review_history_table.add_column("Notes", min_width=20)
+
+    outcome_colors = {
+        ReviewOutcome.PASSED: "green",
+        ReviewOutcome.WARNING: "yellow",
+        ReviewOutcome.FAILED: "red",
+    }
+
+    if reviews:
+        recent = reviews[:5]  # Most recent first, cap at 5 for display
+        for r in recent:
+            color = outcome_colors.get(r.outcome, "white")
+            outcome_str = f"[{color}]{r.outcome.value.upper()}[/{color}]"
+            reviewer_str = r.reviewer or "[dim]—[/dim]"
+            notes_str = (r.notes[:57] + "…") if r.notes and len(r.notes) > 60 else (r.notes or "[dim]—[/dim]")
+            review_history_table.add_row(r.reviewed_at, outcome_str, reviewer_str, notes_str)
+
+        title_suffix = f" [dim]({len(reviews)} total)[/dim]" if len(reviews) > 5 else ""
+        console.print(Panel(
+            review_history_table,
+            title=f"[bold]Review History[/bold]{title_suffix}",
+            title_align="left",
+            border_style="blue",
+        ))
+    else:
+        console.print(Panel(
+            "[dim]No review records yet.[/dim]\n\n"
+            "[dim]Record a review with:[/dim] [cyan]mltrack reviewed " + model.model_name + "[/cyan]",
+            title="[bold]Review History[/bold]",
+            title_align="left",
+            border_style="dim",
+        ))
 
     # Notes (if present)
     if model.notes:

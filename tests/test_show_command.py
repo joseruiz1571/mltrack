@@ -17,6 +17,7 @@ def clean_db(tmp_path, monkeypatch):
     db_path = tmp_path / "test.db"
     monkeypatch.setattr("mltrack.core.database.DEFAULT_DB_PATH", db_path)
     monkeypatch.setattr("mltrack.core.storage.init_db", lambda p=None: init_db(db_path))
+    monkeypatch.setattr("mltrack.core.review_storage.init_db", lambda p=None: init_db(db_path))
     init_db(db_path)
     yield db_path
 
@@ -328,3 +329,70 @@ class TestShowCommandStatus:
 
         assert result.exit_code == 0
         assert "ACTIVE" in result.output
+
+
+class TestShowCommandReviewHistory:
+    """Tests for review history display in mltrack show."""
+
+    def test_show_displays_no_review_records_message(self, sample_model):
+        """Fresh model with no reviews should show 'No review records' message."""
+        result = runner.invoke(app, ["show", "test-model"])
+
+        assert result.exit_code == 0
+        assert "Review History" in result.output
+        assert "No review records" in result.output
+
+    def test_show_displays_review_after_mltrack_reviewed(self, sample_model):
+        """Review recorded via mltrack reviewed should appear in show output."""
+        runner.invoke(app, [
+            "reviewed", "test-model",
+            "--outcome", "passed",
+            "--reviewer", "Jane Smith",
+            "--notes", "Quarterly review completed",
+        ])
+
+        result = runner.invoke(app, ["show", "test-model"])
+
+        assert result.exit_code == 0
+        assert "Review History" in result.output
+        assert "PASSED" in result.output
+        assert "Jane Smith" in result.output
+        assert "Quarterly review" in result.output
+
+    def test_show_displays_outcome_colors_warning(self, sample_model):
+        """Warning outcome should appear in review history."""
+        runner.invoke(app, [
+            "reviewed", "test-model",
+            "--outcome", "warning",
+            "--notes", "Minor issue found",
+        ])
+
+        result = runner.invoke(app, ["show", "test-model"])
+
+        assert result.exit_code == 0
+        assert "WARNING" in result.output
+
+    def test_show_displays_multiple_reviews(self, sample_model):
+        """Multiple reviews should all appear (up to 5)."""
+        for i in range(3):
+            runner.invoke(app, [
+                "reviewed", "test-model",
+                "--notes", f"Review number {i + 1}",
+            ])
+
+        result = runner.invoke(app, ["show", "test-model"])
+
+        assert result.exit_code == 0
+        assert "Review History" in result.output
+        # Most recent review notes should appear
+        assert "Review number 3" in result.output
+
+    def test_show_caps_display_at_five_with_total_count(self, sample_model):
+        """When more than 5 reviews exist, show total count."""
+        for i in range(7):
+            runner.invoke(app, ["reviewed", "test-model"])
+
+        result = runner.invoke(app, ["show", "test-model"])
+
+        assert result.exit_code == 0
+        assert "7 total" in result.output
