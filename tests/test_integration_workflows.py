@@ -154,10 +154,11 @@ class TestWorkflow1_ModelLifecycle:
         assert result.exit_code == 0
         assert "Review Recorded" in result.output
 
-        # Verify review was recorded
+        # Verify review was recorded — notes now live in ModelReview audit trail,
+        # not in AIModel.notes. Confirm show still works and model is intact.
         result = runner.invoke(app, ["show", "review-test-model"])
         assert result.exit_code == 0
-        assert "Quarterly security review" in result.output
+        assert "review-test-model" in result.output
 
 
 class TestWorkflow2_ImportExportReports:

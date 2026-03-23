@@ -2,7 +2,8 @@
 
 import csv
 import json
-from datetime import date
+import uuid
+from datetime import date, datetime, timezone
 from pathlib import Path
 from typing import Optional
 from collections import defaultdict
@@ -44,7 +45,7 @@ report_app = typer.Typer(
 )
 
 # Valid output formats
-OUTPUT_FORMATS = ["terminal", "csv", "json"]
+OUTPUT_FORMATS = ["terminal", "csv", "json", "oscal"]
 
 # Color mappings
 RISK_COLORS = {
@@ -307,6 +308,152 @@ def _generate_compliance_report_data(models: list[AIModel]) -> dict:
     }
 
 
+def _generate_oscal_assessment_results(models: list[AIModel]) -> dict:
+    """Generate an OSCAL 1.1.2 Assessment Results document.
+
+    Produces a standards-compliant OSCAL Assessment Results JSON document
+    based on the current compliance state of the model inventory.
+
+    Each model is represented as a component finding with a satisfaction
+    state derived from the validate_model() compliance logic — no outcomes
+    are fabricated or hardcoded.
+
+    Reference: https://pages.nist.gov/OSCAL/reference/latest/assessment-results/
+    """
+    now_iso = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+    result_uuid = str(uuid.uuid4())
+    doc_uuid = str(uuid.uuid4())
+
+    # Compute validation results for each model (real compliance data)
+    findings = []
+    observations = []
+
+    for model in models:
+        result = validate_model(model)
+        finding_uuid = str(uuid.uuid4())
+        obs_uuid = str(uuid.uuid4())
+
+        # Map our validation outcome to OSCAL satisfaction states
+        if result.passed:
+            state = "satisfied"
+            description = (
+                f"Model '{model.model_name}' satisfies all applicable governance "
+                f"requirements for its risk tier ({model.risk_tier.value.upper()})."
+            )
+        else:
+            state = "not-satisfied"
+            violation_list = "; ".join(result.violations)
+            description = (
+                f"Model '{model.model_name}' has {len(result.violations)} compliance "
+                f"violation(s): {violation_list}"
+            )
+
+        # Review schedule status
+        if model.next_review_date:
+            days_until = (model.next_review_date - date.today()).days
+            review_note = (
+                f"Next review due: {model.next_review_date.isoformat()} "
+                f"({'overdue by ' + str(abs(days_until)) + ' days' if days_until < 0 else 'in ' + str(days_until) + ' days'})"
+            )
+        else:
+            review_note = "No review schedule set."
+
+        observation = {
+            "uuid": obs_uuid,
+            "title": f"Compliance Check — {model.model_name}",
+            "description": description,
+            "methods": ["EXAMINE"],
+            "types": ["control-objective"],
+            "collected": now_iso,
+            "remarks": review_note,
+        }
+        observations.append(observation)
+
+        finding = {
+            "uuid": finding_uuid,
+            "title": f"Model Governance Finding — {model.model_name}",
+            "description": description,
+            "target": {
+                "type": "statement-id",
+                "target-id": f"mltrack-model-{model.id}",
+                "title": model.model_name,
+                "description": (
+                    f"Vendor: {model.vendor} | "
+                    f"Risk: {model.risk_tier.value.upper()} | "
+                    f"Environment: {(model.deployment_environment.value if model.deployment_environment else 'unspecified')} | "
+                    f"Status: {model.status.value}"
+                ),
+                "status": {"state": state},
+                "props": [
+                    {"name": "risk-tier", "value": model.risk_tier.value},
+                    {"name": "vendor", "value": model.vendor},
+                    {"name": "business-owner", "value": model.business_owner},
+                    {"name": "technical-owner", "value": model.technical_owner},
+                    {
+                        "name": "last-review-date",
+                        "value": model.last_review_date.isoformat() if model.last_review_date else "never",
+                    },
+                    {
+                        "name": "next-review-date",
+                        "value": model.next_review_date.isoformat() if model.next_review_date else "unscheduled",
+                    },
+                ],
+            },
+            "related-observations": [{"observation-uuid": obs_uuid}],
+        }
+        findings.append(finding)
+
+    # Summary counts
+    passed_count = sum(1 for m in models if validate_model(m).passed)
+    failed_count = len(models) - passed_count
+
+    return {
+        "assessment-results": {
+            "uuid": doc_uuid,
+            "metadata": {
+                "title": "MLTrack AI Model Governance Assessment Results",
+                "last-modified": now_iso,
+                "version": "1.0",
+                "oscal-version": "1.1.2",
+                "remarks": (
+                    f"Generated by MLTrack on {date.today().isoformat()}. "
+                    f"Regulatory alignment: SR 11-7, NIST AI RMF, ISO 42001. "
+                    f"Assessment scope: {len(models)} models. "
+                    f"Compliance rate: {round(passed_count / len(models) * 100, 1) if models else 0}% "
+                    f"({passed_count} passed, {failed_count} failed)."
+                ),
+            },
+            "import-ap": {
+                "href": "#",
+                "remarks": "Assessment plan is self-referential. MLTrack governance rules define the control objectives.",
+            },
+            "results": [
+                {
+                    "uuid": result_uuid,
+                    "title": f"AI Model Inventory Assessment — {date.today().isoformat()}",
+                    "description": (
+                        f"Compliance assessment of {len(models)} AI/ML models against SR 11-7 Model Risk Management "
+                        f"guidance and NIST AI Risk Management Framework requirements."
+                    ),
+                    "start": now_iso,
+                    "end": now_iso,
+                    "reviewed-controls": {
+                        "description": "Controls assessed include: model inventory completeness, risk tier classification, review schedule adherence, ownership documentation, and data classification.",
+                        "control-selections": [
+                            {
+                                "description": "SR 11-7 Model Risk Management — comprehensive model inventory with ownership and risk documentation",
+                                "include-all": {},
+                            }
+                        ],
+                    },
+                    "findings": findings,
+                    "observations": observations,
+                }
+            ],
+        }
+    }
+
+
 @report_app.command("compliance")
 def compliance_report(
     format: str = typer.Option(
@@ -351,6 +498,9 @@ def compliance_report(
       [dim]# Export violations to CSV for spreadsheet analysis[/dim]
       mltrack report compliance -f csv -o violations.csv
 
+      [dim]# Export OSCAL Assessment Results for regulator submission[/dim]
+      mltrack report compliance -f oscal -o assessment-results.json
+
     \b
     [bold cyan]Related Commands:[/bold cyan]
       mltrack validate --all   Run compliance checks interactively
@@ -363,7 +513,7 @@ def compliance_report(
         )
         raise typer.Exit(1)
 
-    if format != "terminal" and output is None:
+    if format not in ("terminal", "oscal") and output is None:
         console.print(
             f"[red]Output file required for {format} format.[/red]\n"
             f"[dim]Use: mltrack report compliance -f {format} -o filename.{format}[/dim]"
@@ -376,6 +526,12 @@ def compliance_report(
 
     if format == "terminal":
         _generate_compliance_report_terminal(models)
+    elif format == "oscal":
+        oscal_data = _generate_oscal_assessment_results(models)
+        if output:
+            _export_json(oscal_data, output)
+        else:
+            print(json.dumps(oscal_data, indent=2))
     else:
         data = _generate_compliance_report_data(models)
         if format == "json":

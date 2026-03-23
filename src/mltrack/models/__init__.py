@@ -7,6 +7,11 @@ from mltrack.models.ai_model import (
     DataClassification,
     ModelStatus,
 )
+from mltrack.models.model_review import (
+    ModelReview,
+    ReviewOutcome,
+    compute_model_hash,
+)
 
 __all__ = [
     "AIModel",
@@ -14,4 +19,7 @@ __all__ = [
     "DeploymentEnvironment",
     "DataClassification",
     "ModelStatus",
+    "ModelReview",
+    "ReviewOutcome",
+    "compute_model_hash",
 ]

@@ -10,8 +10,9 @@ from rich.table import Table
 from rich import box
 
 from mltrack.core.storage import get_model, get_all_models, update_model, REVIEW_FREQUENCY
+from mltrack.core.review_storage import create_review
 from mltrack.core.exceptions import ModelNotFoundError, DatabaseError
-from mltrack.models import RiskTier
+from mltrack.models import RiskTier, ReviewOutcome
 from mltrack.cli.error_helpers import error_model_not_found, error_database, error_invalid_date
 
 console = Console()
@@ -57,7 +58,17 @@ def reviewed_command(
     notes: Optional[str] = typer.Option(
         None,
         "--notes", "-n",
-        help="Review notes (appended to existing notes with timestamp)",
+        help="Review notes recorded against this review event",
+    ),
+    reviewer: Optional[str] = typer.Option(
+        None,
+        "--reviewer", "-r",
+        help="Name or identifier of who performed the review",
+    ),
+    outcome: str = typer.Option(
+        "passed",
+        "--outcome", "-o",
+        help="Review outcome: passed, warning, or failed (default: passed)",
     ),
 ) -> None:
     """
@@ -112,6 +123,16 @@ def reviewed_command(
         error_invalid_date(review_date, "review date")
         raise typer.Exit(1)
 
+    # Parse outcome
+    try:
+        parsed_outcome = ReviewOutcome(outcome.lower())
+    except ValueError:
+        valid = [o.value for o in ReviewOutcome]
+        console.print(
+            f"[red]Invalid outcome '{outcome}'. Must be one of: {', '.join(valid)}[/red]"
+        )
+        raise typer.Exit(1)
+
     # Get the current model
     try:
         model = get_model(identifier)
@@ -131,18 +152,25 @@ def reviewed_command(
     old_last_review = model.last_review_date
     old_next_review = model.next_review_date
 
-    # Build updates
+    # Update the model's review dates (compliance scheduling depends on this)
     updates = {"last_review_date": parsed_date}
-    if notes is not None:
-        # Append to existing notes or set new
-        if model.notes:
-            updates["notes"] = f"{model.notes}\n\n[{parsed_date}] {notes}"
-        else:
-            updates["notes"] = f"[{parsed_date}] {notes}"
 
     # Apply the update (this will recalculate next_review_date)
     try:
         updated_model = update_model(identifier, updates)
+    except DatabaseError as e:
+        error_database(e.operation, e.details)
+        raise typer.Exit(1)
+
+    # Write a structured, immutable review record for the audit trail
+    try:
+        create_review(
+            model=updated_model,
+            reviewed_at=parsed_date,
+            outcome=parsed_outcome,
+            reviewer=reviewer,
+            notes=notes,
+        )
     except DatabaseError as e:
         error_database(e.operation, e.details)
         raise typer.Exit(1)
@@ -162,6 +190,13 @@ def reviewed_command(
     table.add_row("Model", f"[cyan]{updated_model.model_name}[/cyan]")
     table.add_row("Risk Tier", _format_risk_tier(updated_model.risk_tier))
     table.add_row("Review Cycle", f"{review_days} days")
+    # Show outcome
+    outcome_color = {"passed": "green", "warning": "yellow", "failed": "red"}.get(
+        parsed_outcome.value, "white"
+    )
+    table.add_row("Outcome", f"[{outcome_color}]{parsed_outcome.value.upper()}[/{outcome_color}]")
+    if reviewer:
+        table.add_row("Reviewer", reviewer)
     table.add_row("", "")  # Spacer
 
     # Show last review change
@@ -208,4 +243,5 @@ def reviewed_command(
     )
 
     if notes:
-        console.print(f"\n[dim]Note added:[/dim] {notes}")
+        console.print(f"\n[dim]Review note:[/dim] {notes}")
+    console.print("[dim]Review record written to audit trail.[/dim]")

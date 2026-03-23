@@ -223,35 +223,47 @@ class TestNextReviewCalculation:
 
 
 class TestReviewedNotes:
-    """Tests for notes handling in reviewed command."""
+    """Tests for notes handling in reviewed command.
+
+    Notes are now stored in the ModelReview audit trail (model_reviews table),
+    not appended to AIModel.notes. AIModel.notes is for general model-level
+    notes; ModelReview.notes captures review-specific observations.
+    """
 
     def test_reviewed_with_notes(self, sample_model):
-        """Test adding notes with review."""
+        """Test adding notes with review — notes go to audit trail."""
         result = runner.invoke(app, [
             "reviewed", "review-test-model",
             "-n", "Quarterly review completed",
         ])
 
         assert result.exit_code == 0
-        assert "Note added" in result.output
-
+        # Notes appear in the reviewed output summary
+        assert "Review note" in result.output
+        assert "Quarterly review completed" in result.output
+        # AIModel.notes is unchanged — notes live in ModelReview
         model = get_model("review-test-model")
-        assert "Quarterly review completed" in model.notes
+        assert model.notes is None or "Quarterly review completed" not in (model.notes or "")
 
-    def test_reviewed_notes_include_date(self, sample_model):
-        """Test that notes include the review date."""
-        result = runner.invoke(app, [
+    def test_reviewed_notes_go_to_audit_trail_not_model(self, sample_model):
+        """Notes should be in the ModelReview record, not AIModel.notes."""
+        from mltrack.core.review_storage import get_reviews_for_model
+
+        runner.invoke(app, [
             "reviewed", "review-test-model",
-            "-n", "Test note",
+            "-n", "Test note for audit trail",
         ])
 
-        assert result.exit_code == 0
+        reviews = get_reviews_for_model("review-test-model")
+        assert len(reviews) == 1
+        assert reviews[0].notes == "Test note for audit trail"
 
+        # Model-level notes field should be untouched
         model = get_model("review-test-model")
-        assert str(date.today()) in model.notes
+        assert model.notes is None or "Test note for audit trail" not in (model.notes or "")
 
-    def test_reviewed_appends_to_existing_notes(self, clean_db):
-        """Test that notes are appended to existing notes."""
+    def test_reviewed_preserves_existing_model_notes(self, clean_db):
+        """Existing AIModel.notes should be unchanged after mltrack reviewed."""
         create_model({
             "model_name": "notes-model",
             "vendor": "test",
@@ -272,8 +284,10 @@ class TestReviewedNotes:
         assert result.exit_code == 0
 
         model = get_model("notes-model")
+        # Existing notes unchanged
         assert "Existing notes here" in model.notes
-        assert "New review note" in model.notes
+        # Review note NOT appended to model-level notes
+        assert "New review note" not in model.notes
 
 
 class TestReviewedOutput:

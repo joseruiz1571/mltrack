@@ -4,7 +4,7 @@
 
 [![Python 3.9+](https://img.shields.io/badge/python-3.9+-blue.svg)](https://www.python.org/downloads/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](https://opensource.org/licenses/MIT)
-[![Tests](https://img.shields.io/badge/tests-489%20passing-brightgreen.svg)](#testing)
+[![Tests](https://img.shields.io/badge/tests-517%20passing-brightgreen.svg)](#testing)
 
 ---
 
@@ -153,8 +153,10 @@ Built for financial services firms managing AI model inventories where regulator
 | **Model Inventory** | Track AI models with vendor, ownership, risk tier, and deployment metadata |
 | **Risk-Based Review Cycles** | Automatic review scheduling based on risk tier (Critical: 30d, High: 90d, Medium: 180d, Low: 365d) |
 | **Compliance Validation** | Check models against governance requirements with detailed violation reports |
+| **Defensible Audit Trail** | Structured, immutable review records with SHA-256 model state hashes for tamper evidence |
+| **OSCAL Export** | Generate NIST OSCAL 1.1.2 Assessment Results documents for regulatory submission |
 | **Interactive Dashboard** | Real-time terminal dashboard with filtering and auto-refresh |
-| **Audit Reports** | Generate compliance, inventory, and risk reports (terminal, CSV, JSON) |
+| **Audit Reports** | Generate compliance, inventory, and risk reports (terminal, CSV, JSON, OSCAL) |
 | **Bulk Import/Export** | Import/export model data via CSV or JSON with field mapping |
 | **Sample Data Generation** | Generate realistic financial services demo data |
 
@@ -309,7 +311,7 @@ mltrack add \
 | Command | Description | Example |
 |---------|-------------|---------|
 | `mltrack validate` | Validate compliance | `mltrack validate --all` |
-| `mltrack reviewed <name>` | Record a review | `mltrack reviewed claude-sonnet-4 -d today` |
+| `mltrack reviewed <name>` | Record a review with audit trail | `mltrack reviewed claude-sonnet-4 -d today --outcome passed --reviewer "Jane Smith"` |
 | `mltrack dashboard` | View dashboard | `mltrack dashboard --watch` |
 
 ### Reports
@@ -317,6 +319,7 @@ mltrack add \
 | Command | Description | Example |
 |---------|-------------|---------|
 | `mltrack report compliance` | Compliance status | `mltrack report compliance -f json -o report.json` |
+| `mltrack report compliance` | OSCAL Assessment Results | `mltrack report compliance -f oscal -o assessment-results.json` |
 | `mltrack report inventory` | Full inventory | `mltrack report inventory -f csv -o inventory.csv` |
 | `mltrack report risk` | Risk analysis | `mltrack report risk` |
 
@@ -370,13 +373,19 @@ mltrack validate --all --json
 After completing a quarterly model review:
 
 ```bash
-mltrack reviewed "gpt-4-turbo" --date 2025-01-22 --notes "Quarterly security review completed"
+mltrack reviewed "gpt-4-turbo" \
+  --date 2025-01-22 \
+  --outcome passed \
+  --reviewer "Jane Smith (Model Risk)" \
+  --notes "Quarterly security review completed. No material issues."
 
 # Output:
 # ┌────────────── ✓ Review Recorded ──────────────┐
 # │ Model          gpt-4-turbo                    │
 # │ Risk Tier      CRITICAL                       │
 # │ Review Cycle   30 days                        │
+# │ Outcome        PASSED                         │
+# │ Reviewer       Jane Smith (Model Risk)        │
 # │                                               │
 # │ Last Review (was)   2024-12-20               │
 # │ Last Review (now)   2025-01-22               │
@@ -384,7 +393,12 @@ mltrack reviewed "gpt-4-turbo" --date 2025-01-22 --notes "Quarterly security rev
 # │ Next Review (was)   2025-01-19 (3 days overdue)│
 # │ Next Review (now)   2025-02-21 (in 30 days)  │
 # └───────────────────────────────────────────────┘
+#
+# Review note: Quarterly security review completed. No material issues.
+# Review record written to audit trail.
 ```
+
+Each review creates an immutable record in the `model_reviews` table, including a SHA-256 hash of the model's definition at review time. This allows auditors to verify the model hasn't been altered after a review was recorded.
 
 ### Generating Audit Reports
 
@@ -443,6 +457,24 @@ mltrack import data.csv --validate
 ---
 
 ## Data Model
+
+### ModelReview Schema (Audit Trail)
+
+Each call to `mltrack reviewed` creates one immutable record:
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `id` | UUID | Unique review record identifier |
+| `model_id` | FK | Reference to reviewed model |
+| `model_name` | string | Model name (denormalized for audit readability) |
+| `reviewed_at` | date | Date the review took place |
+| `reviewer` | string | Who performed the review (optional) |
+| `outcome` | enum | `passed`, `warning`, or `failed` |
+| `notes` | text | Review observations (optional) |
+| `model_state_hash` | SHA-256 | Hash of model definition at review time — tamper evidence |
+| `created_at` | datetime | When this record was inserted (UTC, immutable) |
+
+The `model_state_hash` covers: model_name, vendor, risk_tier, use_case, business_owner, technical_owner, deployment_date, model_version, deployment_environment, api_endpoint, data_classification, status.
 
 ### AIModel Schema
 
@@ -510,7 +542,8 @@ pytest -k "test_validate"
 | Import Command | 52 | CSV/JSON parsing, field mapping |
 | Export Command | 45 | File generation, filtering |
 | Sample Data | 33 | Demo data generation |
-| Reports | 42 | Compliance, inventory, risk reports |
+| Reports | 42 | Compliance, inventory, risk, OSCAL reports |
+| Model Review / Audit Trail | 28 | Review records, state hashing, audit trail integrity |
 | Integration Workflows | 14 | End-to-end workflow testing |
 | Performance | 6 | Pagination, batch operations |
 
@@ -588,12 +621,14 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## Roadmap
 
+- [x] Defensible audit trail — structured review records with SHA-256 model state hashes
+- [x] OSCAL 1.1.2 Assessment Results export (`mltrack report compliance -f oscal`)
 - [ ] Model lineage tracking (upstream/downstream dependencies)
-- [ ] Integration with model registries (MLflow, Weights & Biases)
+- [ ] Registry discovery — pull untracked models from MLflow, SageMaker, Azure ML
+- [ ] `mltrack check --model <name>` — CI/CD exit-code compliance gate
 - [ ] Slack/Teams notifications for overdue reviews
 - [ ] Web UI dashboard
 - [ ] Multi-user support with RBAC
-- [ ] Audit log export for regulators
 
 ---
 

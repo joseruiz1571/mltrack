@@ -127,13 +127,14 @@ def init_db(db_path: Path | None = None) -> None:
     """Initialize the database schema.
 
     Creates all tables defined in the models if they don't exist.
-    Safe to call multiple times.
+    Safe to call multiple times — new tables (e.g. model_reviews) are
+    added without touching existing data.
 
     Args:
         db_path: Path to SQLite database file
     """
-    # Import models to ensure they're registered with Base
-    from mltrack.models import AIModel  # noqa: F401
+    # Import all models to ensure they're registered with Base
+    from mltrack.models import AIModel, ModelReview  # noqa: F401
 
     engine = get_engine(db_path)
     Base.metadata.create_all(engine)
@@ -145,7 +146,7 @@ def reset_db(db_path: Path | None = None) -> None:
     Args:
         db_path: Path to SQLite database file
     """
-    from mltrack.models import AIModel  # noqa: F401
+    from mltrack.models import AIModel, ModelReview  # noqa: F401
 
     engine = get_engine(db_path)
     Base.metadata.drop_all(engine)
