@@ -18,6 +18,7 @@ from mltrack.cli.reviewed_command import reviewed_command
 from mltrack.cli.import_command import import_models
 from mltrack.cli.export_command import export_models
 from mltrack.cli.sample_data_command import sample_data
+from mltrack.cli.check_command import check_command
 
 console = Console()
 
@@ -74,6 +75,11 @@ app.command(
     name="delete",
     help="Remove or decommission a model [dim](--soft preserves audit trail)[/dim]",
 )(delete_model_command)
+
+app.command(
+    name="check",
+    help="CI/CD compliance gate [dim](exit 0=pass, 1=fail)[/dim]",
+)(check_command)
 
 app.command(
     name="validate",
