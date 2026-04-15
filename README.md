@@ -671,10 +671,5 @@ As AI transparency documentation matures, structured cards are becoming the stan
 
 - Built with [Typer](https://typer.tiangolo.com/) and [Rich](https://rich.readthedocs.io/)
 - Regulatory guidance from Federal Reserve SR 11-7 and NIST AI RMF
-- Inspired by the real-world challenges of AI governance in financial services
 
 ---
-
-<p align="center">
-  <i>Built for AI Risk Managers who take model governance seriously.</i>
-</p>
