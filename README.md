@@ -4,7 +4,7 @@
 
 [![Python 3.9+](https://img.shields.io/badge/python-3.9+-blue.svg)](https://www.python.org/downloads/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](https://opensource.org/licenses/MIT)
-[![Tests](https://img.shields.io/badge/tests-566%20passing-brightgreen.svg)](#testing)
+[![Tests](https://img.shields.io/badge/tests-615%20passing-brightgreen.svg)](#testing)
 
 ---
 
@@ -135,6 +135,7 @@ Built for financial services firms managing AI model inventories where regulator
 | **Compliance Validation** | Check models against governance requirements with detailed violation reports |
 | **Defensible Audit Trail** | Structured, immutable review records with SHA-256 model state hashes for tamper evidence |
 | **OSCAL Export** | Generate NIST OSCAL 1.1.2 Assessment Results documents for regulatory submission |
+| **Registry Discovery** | Connect to MLflow (and more) to surface untracked models before examiners find them |
 | **Interactive Dashboard** | Real-time terminal dashboard with filtering and auto-refresh |
 | **Audit Reports** | Generate compliance, inventory, and risk reports (terminal, CSV, JSON, OSCAL) |
 | **Bulk Import/Export** | Import/export model data via CSV or JSON with field mapping |
@@ -294,6 +295,15 @@ mltrack add \
 | `mltrack validate` | Validate compliance | `mltrack validate --all` |
 | `mltrack reviewed <name>` | Record a review with audit trail | `mltrack reviewed claude-sonnet-4 -d today --outcome passed --reviewer "Jane Smith"` |
 | `mltrack dashboard` | View dashboard | `mltrack dashboard --watch` |
+
+### Registry Discovery
+
+| Command | Description | Example |
+|---------|-------------|---------|
+| `mltrack discover` | Surface untracked models (demo mode) | `mltrack discover --source mock` |
+| `mltrack discover` | Scan MLflow Model Registry | `mltrack discover --source mlflow --uri http://localhost:5000` |
+| `mltrack discover` | Show only governance gaps | `mltrack discover --source mlflow --untracked-only` |
+| `mltrack discover` | JSON output for scripting | `mltrack discover --source mlflow --json` |
 
 ### Reports
 
@@ -631,14 +641,25 @@ The foundation — every review creates an immutable, hash-verified record.
 
 **Why it matters:** Shifts compliance from periodic audits to continuous enforcement. Every deploy can include a governance gate.
 
-### Next: Registry Discovery
+### Done: Registry Discovery
 
-MLTrack becomes a governance overlay on your existing ML infrastructure — not a duplicate registry.
+MLTrack is a governance overlay on your existing ML infrastructure — not a duplicate registry.
 
-- [ ] `RegistryAdapter` interface with swappable backends (MLflow first, then SageMaker, Azure ML, Vertex)
-- [ ] `mltrack discover --source mlflow` — surface untracked models before examiners find them
+- [x] `RegistryAdapter` interface with swappable backends (extensible to any platform)
+- [x] `mltrack discover --source mlflow` — surface untracked models before examiners find them
+- [x] `--untracked-only` to focus on governance gaps, `--json` for pipeline integration
+- [x] MLflow Model Registry adapter (`pip install mltrack[mlflow]`)
 
-**Why it matters:** The biggest governance risk isn't a poorly reviewed model — it's a model nobody knows about. Discovery closes that gap.
+**Why it matters:** The biggest governance risk isn't a poorly reviewed model — it's a model nobody knows about. Discovery closes that gap before an examiner opens a finding.
+
+### Next: More Registry Adapters
+
+- [ ] **SageMaker Model Registry** — `mltrack discover --source sagemaker` (AWS-native, dominant in FSI)
+- [ ] **Azure ML** — `mltrack discover --source azureml`
+- [ ] **Vertex AI** — `mltrack discover --source vertex`
+- [ ] **Multi-source discovery** — `mltrack discover --source mlflow --source sagemaker` with unified gap view
+
+**Why it matters:** Large financial institutions are multicloud. A model risk team at a tier-1 bank may have models in MLflow, SageMaker, and Azure ML simultaneously. MLTrack's adapter architecture handles all of them with the same governance overlay.
 
 ### Future: Examination Evidence Package
 

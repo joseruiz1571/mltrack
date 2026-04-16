@@ -19,6 +19,7 @@ from mltrack.cli.import_command import import_models
 from mltrack.cli.export_command import export_models
 from mltrack.cli.sample_data_command import sample_data
 from mltrack.cli.check_command import check_command
+from mltrack.cli.discover_command import discover_command
 
 console = Console()
 
@@ -80,6 +81,11 @@ app.command(
     name="check",
     help="CI/CD compliance gate [dim](exit 0=pass, 1=fail)[/dim]",
 )(check_command)
+
+app.command(
+    name="discover",
+    help="Scan external registry for untracked models [dim](--source mock)[/dim]",
+)(discover_command)
 
 app.command(
     name="validate",

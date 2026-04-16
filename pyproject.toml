@@ -36,6 +36,12 @@ dev = [
     "pytest>=7.0.0",
     "pytest-cov>=4.0.0",
 ]
+mlflow = [
+    "mlflow>=2.0.0",
+]
+all-adapters = [
+    "mlflow>=2.0.0",
+]
 
 [project.scripts]
 mltrack = "mltrack.cli.main:app"
