@@ -1,6 +1,6 @@
-# MLTrack
+# mltrack
 
-**Model Lineage Tracker** - A CLI tool for AI model governance and compliance management in financial services.
+**A CLI for AI model inventory and compliance tracking.** Maps model metadata to NIST AI RMF, ISO 42001, and SR 11-7 controls — built for the financial-services model-risk use case, useful anywhere AI models fall under governance requirements.
 
 [![Python 3.9+](https://img.shields.io/badge/python-3.9+-blue.svg)](https://www.python.org/downloads/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](https://opensource.org/licenses/MIT)
