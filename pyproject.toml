@@ -42,6 +42,9 @@ mlflow = [
 all-adapters = [
     "mlflow>=2.0.0",
 ]
+card = [
+    "jsonschema>=4.0",
+]
 
 [project.scripts]
 mltrack = "mltrack.cli.main:app"

@@ -1,0 +1,57 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://raw.githubusercontent.com/joseruiz1571/governance-card-stack/main/schemas/model-card.schema.json",
+  "title": "Governance Model Card (stub)",
+  "description": "STUB — v0.1.0. A structured, evidence-linked descendant of the Model Card (Mitchell et al., 2019). Shares the Governance Card Stack envelope with the Agent Card; the model-specific fields and the shared metadata/governance/evidence defs (to be extracted into card-base.schema.json) will be expanded in a later release.",
+  "type": "object",
+  "required": ["spec_version", "card_type", "metadata", "model"],
+  "additionalProperties": false,
+  "properties": {
+    "spec_version": { "type": "string", "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$" },
+    "card_type": { "const": "model" },
+    "metadata": {
+      "type": "object",
+      "required": ["uuid", "name", "version"],
+      "properties": {
+        "uuid": { "type": "string", "pattern": "^[0-9A-Fa-f]{8}-[0-9A-Fa-f]{4}-4[0-9A-Fa-f]{3}-[89ABab][0-9A-Fa-f]{3}-[0-9A-Fa-f]{12}$" },
+        "name": { "type": "string" },
+        "version": { "type": "string" },
+        "description": { "type": "string" },
+        "owners": { "type": "array" },
+        "lifecycle_status": { "type": "string", "enum": ["proposed", "active", "deprecated", "retired"] }
+      }
+    },
+    "classification": { "type": "object" },
+    "model": {
+      "description": "Model-specific descriptor (stub).",
+      "type": "object",
+      "required": ["provider", "intended_use"],
+      "properties": {
+        "provider": { "type": "string" },
+        "name": { "type": "string" },
+        "version": { "type": "string" },
+        "modality": { "type": "string", "enum": ["text", "vision", "multimodal", "tabular", "audio", "other"] },
+        "intended_use": { "type": "string" },
+        "out_of_scope_uses": { "type": "array", "items": { "type": "string" } },
+        "limitations": { "type": "array", "items": { "type": "string" } },
+        "training_data_summary": { "type": "string" },
+        "evaluations": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "name": { "type": "string" },
+              "metric": { "type": "string" },
+              "value": { "type": "string" },
+              "dataset": { "type": "string" }
+            }
+          }
+        }
+      }
+    },
+    "governance": { "type": "object" },
+    "evidence": { "type": "array" },
+    "attestation": { "type": "object" },
+    "props": { "type": "array" }
+  }
+}

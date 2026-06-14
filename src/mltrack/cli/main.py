@@ -20,6 +20,7 @@ from mltrack.cli.export_command import export_models
 from mltrack.cli.sample_data_command import sample_data
 from mltrack.cli.check_command import check_command
 from mltrack.cli.discover_command import discover_command
+from mltrack.cli.card_command import card_app
 
 console = Console()
 
@@ -127,6 +128,11 @@ app.add_typer(
     dashboard_app,
     name="dashboard",
     help="Interactive dashboard [dim](--watch for auto-refresh)[/dim]",
+)
+app.add_typer(
+    card_app,
+    name="card",
+    help="Export/validate [dim]Governance Model Cards[/dim]",
 )
 
 
