@@ -2,6 +2,12 @@
 
 Step-by-step commands for recording terminal demos with asciinema.
 
+> **Ready-to-record scripts** live alongside this file in [`demo/`](.) (`01-quickstart.sh` … `05-card.sh`). Each runs against an isolated temp database, so recordings never touch your real `~/.mltrack` inventory. Record and convert one with:
+> ```bash
+> asciinema rec -i 2 -c "bash demo/01-quickstart.sh" demo/01-quickstart.cast
+> agg --cols 110 --rows 32 demo/01-quickstart.cast demo/01-quickstart.gif
+> ```
+
 ## Recording Setup
 
 ```bash
@@ -237,6 +243,34 @@ mltrack show fraud-detector
 
 # Check compliance again - should have one fewer failure
 mltrack validate --all
+```
+
+---
+
+## Demo 8: Governance Card Export (2 minutes)
+
+**Purpose**: Show mltrack exporting an inventory record as a schema-valid Governance Model Card — the bridge from inventory to interoperable governance data.
+
+```bash
+# Start fresh and register a model
+mltrack sample-data --count 5 --clear
+mltrack add --name fraud-detector --vendor In-house --risk-tier critical \
+  --use-case "Real-time fraud detection for wire transfers" \
+  --business-owner "Risk Management" --technical-owner "ML Platform" \
+  --deployment-date 2026-02-01 --environment prod \
+  --data-classification confidential --version 2.3.0
+
+# Export it as a Governance Model Card
+mltrack card export fraud-detector -o fraud-detector.card.json
+
+# Inspect the structured artifact
+jq '{card_type, metadata, model, classification}' fraud-detector.card.json
+
+# Validate against the Governance Card Stack schema (exit 0 = valid)
+mltrack card validate fraud-detector.card.json
+
+# Clean up
+rm -f fraud-detector.card.json
 ```
 
 ---

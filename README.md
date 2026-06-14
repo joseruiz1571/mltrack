@@ -4,7 +4,15 @@
 
 [![Python 3.9+](https://img.shields.io/badge/python-3.9+-blue.svg)](https://www.python.org/downloads/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](https://opensource.org/licenses/MIT)
-[![Tests](https://img.shields.io/badge/tests-615%20passing-brightgreen.svg)](#testing)
+[![Tests](https://img.shields.io/badge/tests-641%20passing-brightgreen.svg)](#testing)
+
+---
+
+## See it in action
+
+![mltrack quick start — inventory and compliance posture in under a minute](demo/01-quickstart.gif)
+
+> From an empty database to a governed inventory: model registry, risk-based review cycles (SR 11-7), and compliance validation — in under a minute. More demos [below](#demos).
 
 ---
 
@@ -275,6 +283,36 @@ mltrack add \
 
 ---
 
+## Demos
+
+### Compliance workflow
+
+From inventory to an audit-ready overdue-review report.
+
+![mltrack compliance workflow](demo/02-compliance.gif)
+
+### Full model lifecycle
+
+Register a model with full governance metadata, record a review (the next review is auto-scheduled from the risk tier), then deprecate it — the audit trail is preserved, not deleted.
+
+![mltrack model lifecycle](demo/03-lifecycle.gif)
+
+### Registry discovery: find shadow AI
+
+Scan an external model registry and surface models that exist in production but were never put on the governance inventory.
+
+![mltrack registry discovery](demo/04-discover.gif)
+
+### Governance Model Card export
+
+Export an inventory record as a schema-valid Governance Model Card, then validate it against the [Governance Card Stack](https://github.com/joseruiz1571/governance-card-stack) model-card schema — a CI-ready conformance gate.
+
+![mltrack card export and validate](demo/05-card.gif)
+
+> Recording scripts live in [`demo/`](demo/). Re-record any demo with `asciinema rec -c "bash demo/<name>.sh" demo/<name>.cast` and convert with `agg demo/<name>.cast demo/<name>.gif`.
+
+---
+
 ## Command Reference
 
 ### Model Management
@@ -321,6 +359,16 @@ mltrack add \
 | `mltrack import <file>` | Import from CSV/JSON | `mltrack import models.csv --update` |
 | `mltrack export <file>` | Export to CSV/JSON | `mltrack export backup.json --risk high` |
 | `mltrack sample-data` | Generate demo data | `mltrack sample-data -n 50 --clear` |
+
+### Governance Cards
+
+Export an inventory record as a [Governance Card Stack](https://github.com/joseruiz1571/governance-card-stack) Model Card and validate it against the schema. Validation uses `jsonschema` when installed (`pip install 'mltrack[card]'`) and falls back to a built-in checker otherwise.
+
+| Command | Description | Example |
+|---------|-------------|---------|
+| `mltrack card export <name>` | Export a model as a schema-valid Governance Model Card | `mltrack card export fraud-detector -o fraud-detector.card.json` |
+| `mltrack card export <name>` | Print a card to stdout (pipe to `jq`) | `mltrack card export fraud-detector \| jq .metadata` |
+| `mltrack card validate <file>` | Validate a card against the schema (exit 0/1, CI-ready) | `mltrack card validate fraud-detector.card.json` |
 
 ---
 
