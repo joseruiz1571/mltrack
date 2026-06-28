@@ -14,6 +14,8 @@
 
 > From an empty database to a governed inventory: model registry, risk-based review cycles (SR 11-7), and compliance validation — in under a minute. More demos [below](#demos).
 
+**→ [Watch the 5-minute design walkthrough on Loom](YOUR_LOOM_URL_HERE)** — three design decisions, a live demo, and where mltrack fits in a four-layer AI governance portfolio.
+
 ---
 
 ## The Problem
@@ -550,7 +552,7 @@ Aligned with SR 11-7 Model Risk Management guidance:
 
 ## Testing
 
-MLTrack includes a comprehensive test suite with 566 tests covering all functionality.
+MLTrack includes a comprehensive test suite with 641 tests covering all functionality.
 
 ```bash
 # Install dev dependencies
@@ -573,20 +575,14 @@ pytest -k "test_validate"
 
 | Category | Tests | Coverage |
 |----------|-------|----------|
-| Model CRUD | 45 | Core storage operations |
-| Add Command | 28 | Interactive and flag-based model creation |
-| List/Show/Update/Delete | 52 | Model retrieval and modification |
-| Validate Command | 38 | Compliance validation logic |
-| Dashboard | 74 | Metrics, filtering, display |
-| Import Command | 52 | CSV/JSON parsing, field mapping |
-| Export Command | 45 | File generation, filtering |
+| Model Inventory (CRUD) | 183 | add, list, show, update, delete + storage engine + database |
+| Compliance & Reviews | 98 | validate, review recording, model review audit trail, CI/CD gate |
+| Registry Discovery | 72 | MLflow adapter, registry interface, discover command |
+| Reports & Data Operations | 137 | compliance/inventory/risk reports, CSV/JSON import/export |
+| Dashboard | 74 | Metrics, filtering, display, auto-refresh |
 | Sample Data | 33 | Demo data generation |
-| Reports | 42 | Compliance, inventory, risk, OSCAL reports |
-| Check Command (CI/CD Gate) | 21 | Exit codes, JSON output, silent mode, risk filtering |
-| Registry Discovery | 23 | Adapter ABC, mock adapter, untracked model detection |
-| Model Review / Audit Trail | 28 | Review records, state hashing, audit trail integrity |
-| Integration Workflows | 14 | End-to-end workflow testing |
-| Performance | 6 | Pagination, batch operations |
+| Governance Cards | 26 | Card export, validate, schema conformance drift guard |
+| Integration & CLI | 18 | End-to-end workflow tests, CLI entry point |
 
 ---
 
@@ -596,35 +592,46 @@ pytest -k "test_validate"
 mltrack/
 ├── src/mltrack/
 │   ├── cli/                    # CLI commands
-│   │   ├── main.py            # Entry point, command registration
-│   │   ├── add_command.py     # mltrack add
-│   │   ├── list_command.py    # mltrack list
-│   │   ├── show_command.py    # mltrack show
-│   │   ├── update_command.py  # mltrack update
-│   │   ├── delete_command.py  # mltrack delete
+│   │   ├── main.py             # Entry point, command registration
+│   │   ├── add_command.py      # mltrack add
+│   │   ├── card_command.py     # mltrack card export / validate
 │   │   ├── check_command.py    # mltrack check (CI/CD gate)
-│   │   ├── validate_command.py # mltrack validate
-│   │   ├── reviewed_command.py # mltrack reviewed
 │   │   ├── dashboard_commands.py # mltrack dashboard
-│   │   ├── report_commands.py  # mltrack report
-│   │   ├── import_command.py   # mltrack import
+│   │   ├── delete_command.py   # mltrack delete
+│   │   ├── discover_command.py # mltrack discover
 │   │   ├── export_command.py   # mltrack export
-│   │   └── sample_data_command.py # mltrack sample-data
+│   │   ├── import_command.py   # mltrack import
+│   │   ├── list_command.py     # mltrack list
+│   │   ├── model_commands.py   # shared model resolution helpers
+│   │   ├── report_commands.py  # mltrack report
+│   │   ├── reviewed_command.py # mltrack reviewed
+│   │   ├── sample_data_command.py # mltrack sample-data
+│   │   ├── show_command.py     # mltrack show
+│   │   ├── update_command.py   # mltrack update
+│   │   └── validate_command.py # mltrack validate
 │   ├── core/                   # Business logic
-│   │   ├── database.py        # SQLAlchemy setup
-│   │   ├── storage.py         # CRUD operations
-│   │   ├── review_storage.py  # Audit trail operations
-│   │   ├── config.py          # Configuration
-│   │   └── exceptions.py      # Custom exceptions
+│   │   ├── config.py           # Configuration
+│   │   ├── database.py         # SQLAlchemy setup
+│   │   ├── exceptions.py       # Custom exceptions
+│   │   ├── registry.py         # Registry adapter interface
+│   │   ├── review_storage.py   # Audit trail operations
+│   │   └── storage.py          # CRUD operations
 │   ├── models/                 # Data models
-│   │   ├── ai_model.py        # AIModel SQLAlchemy model
-│   │   └── model_review.py    # ModelReview audit trail model
+│   │   ├── ai_model.py         # AIModel SQLAlchemy model
+│   │   └── model_review.py     # ModelReview audit trail model
 │   ├── adapters/               # Registry platform adapters
-│   │   └── mock_adapter.py    # Mock adapter for testing/demos
-│   └── display/               # Output formatting
-│       └── formatters.py      # Rich formatting helpers
-├── tests/                      # Test suite (566 tests)
-├── pyproject.toml             # Project configuration
+│   │   ├── mlflow_adapter.py   # MLflow Model Registry adapter
+│   │   └── mock_adapter.py     # Mock adapter for testing/demos
+│   ├── schemas/                # Bundled JSON schemas
+│   │   └── model-card.schema.json # Governance Card Stack model card schema
+│   ├── services/               # Business services
+│   │   ├── card_service.py     # Card export/validate logic
+│   │   ├── model_service.py    # Model lifecycle operations
+│   │   └── report_service.py   # Report generation
+│   └── display/                # Output formatting
+│       └── formatters.py       # Rich formatting helpers
+├── tests/                      # Test suite (641 tests)
+├── pyproject.toml              # Project configuration
 └── README.md
 ```
 
@@ -700,6 +707,16 @@ MLTrack is a governance overlay on your existing ML infrastructure — not a dup
 
 **Why it matters:** The biggest governance risk isn't a poorly reviewed model — it's a model nobody knows about. Discovery closes that gap before an examiner opens a finding.
 
+### Done: Governance Model Cards
+
+Export any inventory record as a validated [Governance Card Stack](https://github.com/joseruiz1571/governance-card-stack) Model Card — the shared evidence contract between the inventory layer (mltrack) and the assurance layer ([mlassure](https://github.com/joseruiz1571/mlassure)).
+
+- [x] `mltrack card export <name>` — export AIModel as schema-valid Model Card JSON
+- [x] `mltrack card validate <file>` — validate against governance-card-stack schema (exit 0/1, CI-ready)
+- [x] Bundled schema with drift-guard test — fails loudly if schema drifts from upstream
+
+**Why it matters:** Governance documentation is often decoupled from governance tooling. This command makes mltrack's inventory data the source of record for the card format that mlassure consumes for conformance assessment. Governance as a data problem means the inventory and the spec speak the same schema.
+
 ### Next: More Registry Adapters
 
 - [ ] **SageMaker Model Registry** — `mltrack discover --source sagemaker` (AWS-native, dominant in FSI)
@@ -716,15 +733,14 @@ MLTrack is a governance overlay on your existing ML infrastructure — not a dup
 
 **Why it matters:** Audit preparation currently takes weeks of manual document assembly. This tier automates the packaging. The real moat here is examiner-facing workflow knowledge — what artifacts examiners actually ask for, in what order, with what context. Building this right requires practitioner input from model risk officers who have run these exams.
 
-### On the Horizon: Model Cards, System Cards & Agent Cards
+### On the Horizon: System Cards & Agent Cards
 
-As AI transparency documentation matures, structured cards are becoming the standard way to describe what a model is, how it behaves, and what risks it carries:
+As AI transparency documentation matures, system-level and agent-level cards are becoming the next layer:
 
-- [ ] **Model Cards** — standardized documentation of model purpose, performance, limitations, and ethical considerations ([Mitchell et al., 2019](https://arxiv.org/abs/1908.09203))
 - [ ] **System Cards** — document the full AI system: model + data pipeline + deployment context + safeguards
-- [ ] **Agent Cards** — emerging format for agentic AI: autonomy level, tool access, decision boundaries, human oversight requirements
+- [ ] **Agent Cards** — emerging format for agentic AI: autonomy level, tool access, decision boundaries, human oversight requirements ([governance-card-stack](https://github.com/joseruiz1571/governance-card-stack) already has a draft Agent Card schema)
 
-**Why it matters:** Governance tools that only track *metadata about* models will fall behind. The next layer is generating, validating, and versioning the transparency documentation that regulators and stakeholders increasingly expect. MLTrack's audit trail and model inventory are the natural foundation for card generation — the data is already there, it just needs the output format.
+**Why it matters:** Model Cards describe individual models; the next layer is generating and validating transparency documentation for entire AI systems and autonomous agents. mltrack's inventory data is the natural source of record for both.
 
 ---
 
