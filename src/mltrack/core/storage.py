@@ -484,6 +484,12 @@ def delete_model(identifier: str, db_path: Path | None = None) -> bool:
             return True
     except ModelNotFoundError:
         raise
+    except IntegrityError:
+        raise DatabaseError(
+            "delete",
+            "Model has review records and cannot be hard-deleted. "
+            "Use --soft to decommission instead (preserves audit trail).",
+        )
     except SQLAlchemyError as e:
         raise DatabaseError("delete", str(e))
 

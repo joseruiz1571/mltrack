@@ -70,6 +70,8 @@ SR 11-7 requires banks to maintain "a comprehensive set of models in use across 
 | Validation documentation | Review notes and date tracking |
 | Reporting to board/management | Compliance and risk reports |
 
+> **Note:** SR 11-7 also requires that model validation be conducted independently of model development. MLTrack captures reviewer identity via `--reviewer`; enforcing independence separation is an organizational control outside the tool.
+
 ### OCC 2011-12 & FDIC FIL-22-2017
 
 These complementary guidelines emphasize model governance practices that MLTrack supports:
@@ -118,7 +120,7 @@ Financial services firms face unique challenges with AI governance:
 
 **ML platform engineers** who want a lightweight compliance gate in their CI/CD pipelines, not a heavyweight GRC platform.
 
-**AI risk managers** preparing for SR 11-7 examinations who need defensible evidence that models were reviewed, when, by whom, and that nothing changed after the fact.
+**AI risk managers** preparing for SR 11-7 examinations who need defensible evidence that models were reviewed, when, by whom, and that nothing changed after the fact. The tamper-evident audit trail design — SHA-256 hashing of model state at review time — draws directly from library science concepts of authority control and chain of custody applied to structured data.
 
 ---
 
@@ -144,7 +146,7 @@ Built for financial services firms managing AI model inventories where regulator
 | **Risk-Based Review Cycles** | Automatic review scheduling based on risk tier (Critical: 30d, High: 90d, Medium: 180d, Low: 365d) |
 | **Compliance Validation** | Check models against governance requirements with detailed violation reports |
 | **Defensible Audit Trail** | Structured, immutable review records with SHA-256 model state hashes for tamper evidence |
-| **OSCAL Export** | Generate NIST OSCAL 1.1.2 Assessment Results documents for regulatory submission |
+| **OSCAL Export** | Generate OSCAL 1.1.2 schema-valid Assessment Results — structured for regulatory documentation workflows |
 | **Registry Discovery** | Connect to MLflow (and more) to surface untracked models before examiners find them |
 | **Interactive Dashboard** | Real-time terminal dashboard with filtering and auto-refresh |
 | **Audit Reports** | Generate compliance, inventory, and risk reports (terminal, CSV, JSON, OSCAL) |

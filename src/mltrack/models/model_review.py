@@ -46,7 +46,7 @@ class ModelReview(Base):
     # Foreign key to the reviewed model
     model_id: Mapped[str] = mapped_column(
         String(36),
-        ForeignKey("ai_models.id", ondelete="CASCADE"),
+        ForeignKey("ai_models.id", ondelete="RESTRICT"),
         nullable=False,
     )
 

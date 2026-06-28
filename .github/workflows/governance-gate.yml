@@ -1,0 +1,32 @@
+name: Governance Gate
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  compliance-check:
+    name: MLTrack Compliance Gate
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install mltrack
+        run: pip install -e .
+
+      - name: Load sample inventory
+        run: mltrack sample-data --count 5
+
+      - name: Run compliance gate
+        run: |
+          mltrack check --format json
+          # Exit 1 if any models are overdue or non-compliant.
+          # Wire this to your actual inventory DB via MLTRACK_DB_PATH.
