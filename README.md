@@ -14,7 +14,7 @@
 
 > From an empty database to a governed inventory: model registry, risk-based review cycles (SR 11-7), and compliance validation — in under a minute. More demos [below](#demos).
 
-**→ [Watch the 5-minute design walkthrough on Loom](YOUR_LOOM_URL_HERE)** — three design decisions, a live demo, and where mltrack fits in a four-layer AI governance portfolio.
+**→ [Watch the design walkthrough on YouTube](https://youtu.be/SoOmpzHrt6s)** — three design decisions and a live terminal demo, in three and a half minutes.
 
 ---
 
