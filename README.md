@@ -1,12 +1,10 @@
 # mltrack
 
-**A CLI for AI model inventory and compliance tracking.** Maps model metadata to NIST AI RMF, ISO 42001, and SR 11-7 controls — built for the financial-services model-risk use case, useful anywhere AI models fall under governance requirements.
+**CLI for AI model inventory and compliance tracking; maps to NIST AI RMF, ISO 42001, and SR 11-7 behind a fail-closed CI gate.**
 
 [![Python 3.9+](https://img.shields.io/badge/python-3.9+-blue.svg)](https://www.python.org/downloads/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](https://opensource.org/licenses/MIT)
 [![Tests](https://img.shields.io/badge/tests-641%20passing-brightgreen.svg)](#testing)
-
----
 
 ## See it in action
 
@@ -16,37 +14,17 @@
 
 **→ [Watch the design walkthrough on YouTube](https://youtu.be/SoOmpzHrt6s)** — three design decisions and a live terminal demo, in three and a half minutes.
 
----
+## Why
 
-## The Problem
+Spreadsheets lose owners, review dates, and which models are actually deployed. mltrack is a governed inventory with review cycles set by risk tier, and `mltrack check` is a CI gate that exits non-zero when a model fails validation.
 
-**Financial institutions deploying AI models face a critical governance gap.**
+## Regulatory alignment
 
-As AI adoption accelerates in banking and financial services, regulatory scrutiny is intensifying. The Federal Reserve, OCC, and FDIC now require firms to maintain comprehensive AI model inventories with documented ownership, risk assessments, and scheduled reviews. Yet most organizations still track this information in spreadsheets—if at all.
-
-**The consequences of poor AI governance are severe:**
-
-- **Regulatory penalties**: Examiners cite inadequate model inventories as MRA (Matter Requiring Attention) findings
-- **Operational risk**: Orphaned models with no documented owner continue running in production
-- **Compliance failures**: Review deadlines pass unnoticed, creating audit trail gaps
-- **Reputational damage**: Models making decisions without proper oversight
-
-**MLTrack solves this by providing:**
-
-- A single source of truth for all deployed AI/ML models
-- Automated review scheduling based on risk tier
-- Compliance validation against governance requirements
-- Audit-ready reports for regulatory examinations
-
----
-
-## Regulatory Alignment
+[NIST AI RMF](https://www.nist.gov/itl/ai-risk-management-framework) · [SR 11-7](https://www.federalreserve.gov/supervisionreg/srletters/sr1107.htm) · [ISO 42001](https://www.iso.org/standard/81230.html)
 
 ### NIST AI Risk Management Framework (AI RMF)
 
-MLTrack directly supports the NIST AI RMF core functions:
-
-| NIST AI RMF Function | MLTrack Feature | How It Helps |
+| NIST AI RMF Function | mltrack Feature | How It Helps |
 |---------------------|-----------------|--------------|
 | **GOVERN 1.1** - Legal/regulatory requirements | Risk tier classification | Maps models to review frequencies based on regulatory expectations |
 | **GOVERN 1.5** - Ongoing monitoring | `mltrack validate --all` | Automated compliance checking across entire inventory |
@@ -59,9 +37,9 @@ MLTrack directly supports the NIST AI RMF core functions:
 
 ### Federal Reserve SR 11-7 (Model Risk Management)
 
-SR 11-7 requires banks to maintain "a comprehensive set of models in use across the organization." MLTrack implements key requirements:
+SR 11-7 requires banks to maintain "a comprehensive set of models in use across the organization."
 
-| SR 11-7 Requirement | MLTrack Implementation |
+| SR 11-7 Requirement | mltrack Implementation |
 |--------------------|------------------------|
 | Model inventory | Full model registry with metadata |
 | Ownership documentation | Business owner + technical owner fields |
@@ -70,75 +48,15 @@ SR 11-7 requires banks to maintain "a comprehensive set of models in use across 
 | Validation documentation | Review notes and date tracking |
 | Reporting to board/management | Compliance and risk reports |
 
-> **Note:** SR 11-7 also requires that model validation be conducted independently of model development. MLTrack captures reviewer identity via `--reviewer`; enforcing independence separation is an organizational control outside the tool.
+SR 11-7 also requires that model validation be conducted independently of model development. mltrack captures reviewer identity via `--reviewer`; enforcing independence separation is an organizational control outside the tool.
 
-### OCC 2011-12 & FDIC FIL-22-2017
+## Who this is for
 
-These complementary guidelines emphasize model governance practices that MLTrack supports:
-
-- **Effective challenge**: Documented review process with date tracking
-- **Model inventory maintenance**: Centralized registry with search/filter capabilities
-- **Third-party model risk**: Vendor tracking distinguishes in-house vs. external models
-- **Model lifecycle management**: Status field tracks active → deprecated → decommissioned
-
----
-
-## Why Financial Services Needs This
-
-### The AI Governance Challenge
-
-Financial services firms face unique challenges with AI governance:
-
-1. **Volume**: Large banks may deploy hundreds of AI/ML models across business lines
-2. **Velocity**: New models are deployed weekly; existing models are updated constantly
-3. **Variety**: Models range from simple classifiers to complex LLM applications
-4. **Scrutiny**: Regulators examine AI use with increasing rigor
-
-### Current State at Most Firms
-
-- Model inventories live in Excel spreadsheets (if they exist at all)
-- Review schedules are tracked manually or forgotten entirely
-- No automated compliance checking
-- Audit preparation requires weeks of manual data gathering
-- No single view of AI risk concentration
-
-### How MLTrack Helps
-
-| Pain Point | MLTrack Solution |
-|------------|------------------|
-| "We don't know what models we have" | Centralized inventory with search |
-| "Reviews fall through the cracks" | Automated scheduling + overdue alerts |
-| "Audit prep takes weeks" | One-command report generation |
-| "No visibility into risk concentration" | Dashboard with risk distribution |
-| "Spreadsheets are error-prone" | Validated data entry + imports |
-
----
-
-## Who This Is For
-
-**Model risk teams** at banks and financial institutions who need to move from spreadsheet-based model inventories to auditable, automated governance — without replacing their existing ML infrastructure.
-
-**ML platform engineers** who want a lightweight compliance gate in their CI/CD pipelines, not a heavyweight GRC platform.
-
-**AI risk managers** preparing for SR 11-7 examinations who need defensible evidence that models were reviewed, when, by whom, and that nothing changed after the fact. The tamper-evident audit trail design — SHA-256 hashing of model state at review time — draws directly from library science concepts of authority control and chain of custody applied to structured data.
-
----
-
-## Overview
-
-MLTrack helps AI Risk Managers and compliance teams track deployed AI/ML models with automated review scheduling aligned to regulatory frameworks:
-
-- **[SR 11-7](https://www.federalreserve.gov/supervisionreg/srletters/sr1107.htm)** - Federal Reserve Model Risk Management Guidance
-- **[NIST AI RMF](https://www.nist.gov/itl/ai-risk-management-framework)** - AI Risk Management Framework
-- **[ISO 42001](https://www.iso.org/standard/81230.html)** - AI Management System Standard
-
-Built for financial services firms managing AI model inventories where regulatory compliance requires documented model governance, ownership tracking, and scheduled reviews.
-
----
+- **Model risk teams** moving from a spreadsheet inventory to a registry with owners, risk tiers, and scheduled reviews.
+- **ML platform engineers** adding a compliance gate to CI.
+- **AI risk managers** who need a record of who reviewed a model, when, and a hash of the model state at that time.
 
 ## Features
-
-### Core Capabilities
 
 | Feature | Description |
 |---------|-------------|
@@ -147,105 +65,41 @@ Built for financial services firms managing AI model inventories where regulator
 | **Compliance Validation** | Check models against governance requirements with detailed violation reports |
 | **Defensible Audit Trail** | Structured, immutable review records with SHA-256 model state hashes for tamper evidence |
 | **OSCAL Export** | Generate OSCAL 1.1.2 schema-valid Assessment Results — structured for regulatory documentation workflows |
-| **Registry Discovery** | Connect to MLflow (and more) to surface untracked models before examiners find them |
-| **Interactive Dashboard** | Real-time terminal dashboard with filtering and auto-refresh |
+| **Registry Discovery** | Connect to MLflow and list models missing from the inventory |
+| **Interactive Dashboard** | Terminal dashboard with filtering and auto-refresh |
 | **Audit Reports** | Generate compliance, inventory, and risk reports (terminal, CSV, JSON, OSCAL) |
 | **Bulk Import/Export** | Import/export model data via CSV or JSON with field mapping |
 | **Sample Data Generation** | Generate realistic financial services demo data |
-
-### Terminal Dashboard
-
-```
-┌─────────────────────────── Model Inventory Summary ───────────────────────────┐
-│                                                                               │
-│  Total Models      20       CRITICAL   3                                      │
-│  Active Models     18       HIGH       5                                      │
-│  Compliance      85.0%      MEDIUM     7                                      │
-│  Overdue Reviews   3        LOW        5                                      │
-│                                                                               │
-└───────────────────────────────────────────────────────────────────────────────┘
-┌─── Recent Additions ────┐┌─── Reviews Needed (30 days) ─┐┌─ High Risk in Prod ─┐
-│ Model         Risk Added││ Model         Risk Due Status││ Model      Vendor   │
-│ claude-3      HIGH 01-22││ gpt-4-turbo   CRIT 5d  SOON  ││ gpt-4      OpenAI   │
-│ fraud-v2      CRIT 01-21││ fraud-v2      CRIT 12d SOON  ││ claude-3   Anthropic│
-│ bedrock-titan MED  01-20││ credit-risk   HIGH 3d overdue││ fraud-v2   In-house │
-└─────────────────────────┘└───────────────────────────────┘└─────────────────────┘
-┌──────────── By Vendor ────────────┐┌──────────── By Environment ─────────────┐
-│ Anthropic  ████████████████  8    ││ PROD     ████████████████████  12       │
-│ OpenAI     ████████████      5    ││ STAGING  ████████            4          │
-│ AWS        ██████            3    ││ DEV      ████████            4          │
-│ In-house   ████              2    │└──────────────────────────────────────────┘
-└───────────────────────────────────┘
-```
-
-### Compliance Validation
-
-```
-┌──────────────────── Validating 20 models ────────────────────┐
-│                                                              │
-│  ✗ FAIL  gpt-4-turbo  CRITICAL                              │
-│      • Review overdue by 5 days (CRITICAL requires 30 days) │
-│      • Production model missing data classification         │
-│                                                              │
-│  ✗ FAIL  credit-risk-model  HIGH                            │
-│      • Review overdue by 12 days (HIGH requires 90 days)    │
-│                                                              │
-│  ✓ PASS  claude-3-opus  HIGH                                │
-│  ✓ PASS  fraud-detector  CRITICAL                           │
-│                                                              │
-└──────────────────────────────────────────────────────────────┘
-┌─────────────── NEEDS ATTENTION ───────────────┐
-│  Total Models      20                         │
-│  Passed            18                         │
-│  Failed            2                          │
-│  Compliance Rate   90.0%                      │
-└───────────────────────────────────────────────┘
-```
-
----
 
 ## Installation
 
 ### Requirements
 
 - Python 3.9 or higher
-- pip (Python package manager)
+- pip
 
-### Install from Source
+### Install from source
 
 ```bash
-# Clone the repository
 git clone https://github.com/joseruiz1571/mltrack.git
 cd mltrack
-
-# Install in development mode
 pip install -e ".[dev]"
-
-# Verify installation
 mltrack --version
 ```
 
-### Dependencies
-
-- **typer** - CLI framework with Rich integration
-- **rich** - Terminal formatting and layouts
-- **sqlalchemy** - Database ORM (SQLite by default)
-
----
+Runtime dependencies: [Typer](https://typer.tiangolo.com/), [Rich](https://rich.readthedocs.io/), SQLAlchemy (SQLite by default). Optional extras: `mltrack[mlflow]`, `mltrack[card]` (`jsonschema`).
 
 ## Quick Start
 
-### 1. Generate Sample Data
-
-Start with realistic demo data to explore all features:
+### 1. Generate sample data
 
 ```bash
 mltrack sample-data --count 20
 ```
 
-This creates 20 AI models with realistic financial services use cases, various vendors, and a mix of compliant/overdue review statuses.
+This creates 20 AI models with financial-services use cases, mixed vendors, and a mix of compliant and overdue reviews.
 
-### 2. View the Dashboard
+### 2. View the dashboard
 
 ```bash
 mltrack dashboard
@@ -257,21 +111,21 @@ Or with auto-refresh:
 mltrack dashboard --watch --interval 30
 ```
 
-### 3. Run Compliance Checks
+### 3. Run compliance checks
 
 ```bash
 mltrack validate --all
 ```
 
-### 4. Add Your First Model
+### 4. Add a model
 
-Interactive mode with guided prompts:
+Interactive:
 
 ```bash
 mltrack add --interactive
 ```
 
-Or via command-line flags:
+Or with flags:
 
 ```bash
 mltrack add \
@@ -284,8 +138,6 @@ mltrack add \
   --deployment-date 2025-01-15 \
   --environment prod
 ```
-
----
 
 ## Demos
 
@@ -315,11 +167,9 @@ Export an inventory record as a schema-valid Governance Model Card, then validat
 
 > Recording scripts live in [`demo/`](demo/). Re-record any demo with `asciinema rec -c "bash demo/<name>.sh" demo/<name>.cast` and convert with `agg demo/<name>.cast demo/<name>.gif`.
 
----
+## Command reference
 
-## Command Reference
-
-### Model Management
+### Model management
 
 | Command | Description | Example |
 |---------|-------------|---------|
@@ -329,16 +179,19 @@ Export an inventory record as a schema-valid Governance Model Card, then validat
 | `mltrack update <name>` | Update a model | `mltrack update claude-sonnet-4 --status deprecated` |
 | `mltrack delete <name>` | Delete a model | `mltrack delete old-model` |
 
-### Compliance & Reviews
+### Compliance and reviews
 
 | Command | Description | Example |
 |---------|-------------|---------|
 | `mltrack check <name>` | CI/CD compliance gate (exit 0/1) | `mltrack check fraud-detector --json` |
+| `mltrack check` | Check the inventory or one tier | `mltrack check --all` · `mltrack check --risk critical` |
 | `mltrack validate` | Validate compliance | `mltrack validate --all` |
+| `mltrack validate` | One tier, one model, or JSON | `mltrack validate --risk critical` · `mltrack validate --model-id claude-sonnet-4` · `mltrack validate --all --json` |
 | `mltrack reviewed <name>` | Record a review with audit trail | `mltrack reviewed claude-sonnet-4 -d today --outcome passed --reviewer "Jane Smith"` |
 | `mltrack dashboard` | View dashboard | `mltrack dashboard --watch` |
+| `mltrack dashboard` | Filter the dashboard | `mltrack dashboard --watch --interval 60 --risk high --environment prod --vendor anthropic` |
 
-### Registry Discovery
+### Registry discovery
 
 | Command | Description | Example |
 |---------|-------------|---------|
@@ -356,15 +209,17 @@ Export an inventory record as a schema-valid Governance Model Card, then validat
 | `mltrack report inventory` | Full inventory | `mltrack report inventory -f csv -o inventory.csv` |
 | `mltrack report risk` | Risk analysis | `mltrack report risk` |
 
-### Data Operations
+### Data operations
 
 | Command | Description | Example |
 |---------|-------------|---------|
 | `mltrack import <file>` | Import from CSV/JSON | `mltrack import models.csv --update` |
+| `mltrack import <file>` | Validate a file without writing | `mltrack import data.csv --validate` |
 | `mltrack export <file>` | Export to CSV/JSON | `mltrack export backup.json --risk high` |
+| `mltrack export <file>` | Export a slice or a blank template | `mltrack export production-models.csv --environment prod` · `mltrack export template.csv --template` |
 | `mltrack sample-data` | Generate demo data | `mltrack sample-data -n 50 --clear` |
 
-### Governance Cards
+### Governance cards
 
 Export an inventory record as a [Governance Card Stack](https://github.com/joseruiz1571/governance-card-stack) Model Card and validate it against the schema. Validation uses `jsonschema` when installed (`pip install 'mltrack[card]'`) and falls back to a built-in checker otherwise.
 
@@ -374,174 +229,11 @@ Export an inventory record as a [Governance Card Stack](https://github.com/joser
 | `mltrack card export <name>` | Print a card to stdout (pipe to `jq`) | `mltrack card export fraud-detector \| jq .metadata` |
 | `mltrack card validate <file>` | Validate a card against the schema (exit 0/1, CI-ready) | `mltrack card validate fraud-detector.card.json` |
 
----
+## Data model
 
-## Use Case Examples
+### Risk tier review cycles
 
-### Adding Your First Model
-
-```bash
-# Interactive mode - recommended for first-time users
-mltrack add --interactive
-
-# Output:
-# ┌─────────────── Add New AI Model ───────────────┐
-# │ Enter model details below.                     │
-# │ Required fields are marked with *              │
-# └────────────────────────────────────────────────┘
-#
-# * Model name (e.g., fraud-detection-v2): claude-sonnet-4
-# * Vendor (e.g., anthropic, openai): Anthropic
-# ...
-```
-
-### Running Compliance Checks
-
-```bash
-# Check all models
-mltrack validate --all
-
-# Check only critical risk models
-mltrack validate --risk critical
-
-# Check a specific model
-mltrack validate --model-id "claude-sonnet-4"
-
-# Output as JSON for CI/CD integration
-mltrack validate --all --json
-```
-
-### Recording a Model Review
-
-After completing a quarterly model review:
-
-```bash
-mltrack reviewed "gpt-4-turbo" \
-  --date 2025-01-22 \
-  --outcome passed \
-  --reviewer "Jane Smith (Model Risk)" \
-  --notes "Quarterly security review completed. No material issues."
-
-# Output:
-# ┌────────────── ✓ Review Recorded ──────────────┐
-# │ Model          gpt-4-turbo                    │
-# │ Risk Tier      CRITICAL                       │
-# │ Review Cycle   30 days                        │
-# │ Outcome        PASSED                         │
-# │ Reviewer       Jane Smith (Model Risk)        │
-# │                                               │
-# │ Last Review (was)   2024-12-20               │
-# │ Last Review (now)   2025-01-22               │
-# │                                               │
-# │ Next Review (was)   2025-01-19 (3 days overdue)│
-# │ Next Review (now)   2025-02-21 (in 30 days)  │
-# └───────────────────────────────────────────────┘
-#
-# Review note: Quarterly security review completed. No material issues.
-# Review record written to audit trail.
-```
-
-Each review creates an immutable record in the `model_reviews` table, including a SHA-256 hash of the model's definition at review time. This allows auditors to verify the model hasn't been altered after a review was recorded.
-
-### Generating Audit Reports
-
-```bash
-# Terminal report
-mltrack report compliance
-
-# Export for auditors (JSON)
-mltrack report compliance -f json -o compliance-q1-2025.json
-
-# Export inventory to CSV
-mltrack report inventory -f csv -o model-inventory.csv
-```
-
-### Viewing the Dashboard
-
-```bash
-# Static view
-mltrack dashboard
-
-# Auto-refresh every 60 seconds
-mltrack dashboard --watch --interval 60
-
-# Filter by risk tier
-mltrack dashboard --risk critical
-
-# Filter by vendor
-mltrack dashboard --vendor anthropic
-
-# Combine filters
-mltrack dashboard --risk high --environment prod
-```
-
-### Bulk Import/Export
-
-```bash
-# Export current inventory
-mltrack export backup.json
-
-# Export only production models
-mltrack export production-models.csv --environment prod
-
-# Export template for new data entry
-mltrack export template.csv --template
-
-# Import from CSV (skip duplicates by default)
-mltrack import new-models.csv
-
-# Import with updates for existing models
-mltrack import updates.csv --update
-
-# Validate without importing
-mltrack import data.csv --validate
-```
-
----
-
-## Data Model
-
-### ModelReview Schema (Audit Trail)
-
-Each call to `mltrack reviewed` creates one immutable record:
-
-| Field | Type | Description |
-|-------|------|-------------|
-| `id` | UUID | Unique review record identifier |
-| `model_id` | FK | Reference to reviewed model |
-| `model_name` | string | Model name (denormalized for audit readability) |
-| `reviewed_at` | date | Date the review took place |
-| `reviewer` | string | Who performed the review (optional) |
-| `outcome` | enum | `passed`, `warning`, or `failed` |
-| `notes` | text | Review observations (optional) |
-| `model_state_hash` | SHA-256 | Hash of model definition at review time — tamper evidence |
-| `created_at` | datetime | When this record was inserted (UTC, immutable) |
-
-The `model_state_hash` covers: model_name, vendor, risk_tier, use_case, business_owner, technical_owner, deployment_date, model_version, deployment_environment, api_endpoint, data_classification, status.
-
-### AIModel Schema
-
-| Field | Type | Required | Description |
-|-------|------|----------|-------------|
-| `model_name` | string | Yes | Unique identifier for the model |
-| `vendor` | string | Yes | Model provider (Anthropic, OpenAI, AWS, etc.) |
-| `risk_tier` | enum | Yes | critical, high, medium, low |
-| `use_case` | text | Yes | Business use case description |
-| `business_owner` | string | Yes | Accountable business stakeholder |
-| `technical_owner` | string | Yes | Technical team/person maintaining the model |
-| `deployment_date` | date | Yes | When the model was deployed |
-| `model_version` | string | No | Version identifier |
-| `deployment_environment` | enum | No | prod, staging, dev |
-| `api_endpoint` | string | No | API endpoint URL |
-| `data_classification` | enum | No | public, internal, confidential, restricted |
-| `status` | enum | Auto | active, deprecated, decommissioned |
-| `last_review_date` | date | Auto | Last compliance review date |
-| `next_review_date` | date | Auto | Calculated based on risk tier |
-| `notes` | text | No | Additional notes and review history |
-
-### Risk Tier Review Cycles
-
-Aligned with SR 11-7 Model Risk Management guidance:
+Aligned with SR 11-7:
 
 | Risk Tier | Review Frequency | Typical Use Cases |
 |-----------|------------------|-------------------|
@@ -550,30 +242,29 @@ Aligned with SR 11-7 Model Risk Management guidance:
 | **MEDIUM** | Every 180 days | Document summarization, internal search, meeting transcription |
 | **LOW** | Every 365 days | Developer tools, test data generation, internal documentation |
 
----
+### AIModel
+
+Required: `model_name`, `vendor`, `risk_tier` (`critical`, `high`, `medium`, `low`), `use_case`, `business_owner`, `technical_owner`, `deployment_date`.
+
+Optional: `model_version`, `deployment_environment` (`prod`, `staging`, `dev`), `api_endpoint`, `data_classification` (`public`, `internal`, `confidential`, `restricted`), `notes`.
+
+Set by the tool: `status` (`active`, `deprecated`, `decommissioned`), `last_review_date`, `next_review_date` (from the risk tier).
+
+### ModelReview
+
+Each `mltrack reviewed` inserts one record: `reviewed_at`, `reviewer`, `outcome` (`passed`, `warning`, `failed`), `notes`, and `model_state_hash`. The hash is SHA-256 over the model definition at review time (name, vendor, risk tier, use case, owners, deployment date, version, environment, endpoint, data classification, status). Records are insert-only.
 
 ## Testing
 
-MLTrack includes a comprehensive test suite with 641 tests covering all functionality.
+641 tests.
 
 ```bash
-# Install dev dependencies
 pip install -e ".[dev]"
-
-# Run all tests
 pytest
-
-# Run with coverage
 pytest --cov=mltrack --cov-report=term-missing
-
-# Run specific test file
 pytest tests/test_dashboard_command.py
-
-# Run tests matching a pattern
 pytest -k "test_validate"
 ```
-
-### Test Categories
 
 | Category | Tests | Coverage |
 |----------|-------|----------|
@@ -586,177 +277,68 @@ pytest -k "test_validate"
 | Governance Cards | 26 | Card export, validate, schema conformance drift guard |
 | Integration & CLI | 18 | End-to-end workflow tests, CLI entry point |
 
----
-
-## Project Structure
+## Project structure
 
 ```
 mltrack/
-├── src/mltrack/
-│   ├── cli/                    # CLI commands
-│   │   ├── main.py             # Entry point, command registration
-│   │   ├── add_command.py      # mltrack add
-│   │   ├── card_command.py     # mltrack card export / validate
-│   │   ├── check_command.py    # mltrack check (CI/CD gate)
-│   │   ├── dashboard_commands.py # mltrack dashboard
-│   │   ├── delete_command.py   # mltrack delete
-│   │   ├── discover_command.py # mltrack discover
-│   │   ├── export_command.py   # mltrack export
-│   │   ├── import_command.py   # mltrack import
-│   │   ├── list_command.py     # mltrack list
-│   │   ├── model_commands.py   # shared model resolution helpers
-│   │   ├── report_commands.py  # mltrack report
-│   │   ├── reviewed_command.py # mltrack reviewed
-│   │   ├── sample_data_command.py # mltrack sample-data
-│   │   ├── show_command.py     # mltrack show
-│   │   ├── update_command.py   # mltrack update
-│   │   └── validate_command.py # mltrack validate
-│   ├── core/                   # Business logic
-│   │   ├── config.py           # Configuration
-│   │   ├── database.py         # SQLAlchemy setup
-│   │   ├── exceptions.py       # Custom exceptions
-│   │   ├── registry.py         # Registry adapter interface
-│   │   ├── review_storage.py   # Audit trail operations
-│   │   └── storage.py          # CRUD operations
-│   ├── models/                 # Data models
-│   │   ├── ai_model.py         # AIModel SQLAlchemy model
-│   │   └── model_review.py     # ModelReview audit trail model
-│   ├── adapters/               # Registry platform adapters
-│   │   ├── mlflow_adapter.py   # MLflow Model Registry adapter
-│   │   └── mock_adapter.py     # Mock adapter for testing/demos
-│   ├── schemas/                # Bundled JSON schemas
-│   │   └── model-card.schema.json # Governance Card Stack model card schema
-│   ├── services/               # Business services
-│   │   ├── card_service.py     # Card export/validate logic
-│   │   ├── model_service.py    # Model lifecycle operations
-│   │   └── report_service.py   # Report generation
-│   └── display/                # Output formatting
-│       └── formatters.py       # Rich formatting helpers
-├── tests/                      # Test suite (641 tests)
-├── pyproject.toml              # Project configuration
+├── src/mltrack/     # cli, core, models, adapters, schemas, services, display
+├── tests/           # 641 tests
+├── demo/            # asciinema scripts and GIFs
+├── pyproject.toml
 └── README.md
 ```
 
----
-
 ## Contributing
 
-Contributions are welcome! This project follows standard Python development practices.
-
-### Development Setup
-
 ```bash
-# Clone and install
 git clone https://github.com/joseruiz1571/mltrack.git
 cd mltrack
 pip install -e ".[dev]"
-
-# Create a branch
 git checkout -b feature/your-feature
-
-# Make changes and run tests
 pytest
-
-# Submit a pull request
 ```
 
-### Code Style
-
-- Follow PEP 8 guidelines
-- Use type hints for function signatures
-- Write docstrings for public functions
-- Add tests for new functionality
-
----
+PEP 8, type hints on public functions, and tests for new behavior.
 
 ## License
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-
----
+MIT. See [LICENSE](LICENSE).
 
 ## Roadmap
 
-MLTrack is built in tiers, each adding regulatory value on top of the last.
+### Done
 
-### Done: Defensible Audit Trail
+- [x] `ModelReview` records with SHA-256 model state hashes
+- [x] `mltrack reviewed` writes structured audit records
+- [x] OSCAL 1.1.2 Assessment Results (`mltrack report compliance -f oscal`)
+- [x] `mltrack check` CI gate (exit 0/1, `--all`, `--risk`, `--json`, silent by default)
+- [x] `mltrack discover --source mlflow` (`--untracked-only`, `--json`; `pip install mltrack[mlflow]`)
+- [x] `mltrack card export` / `mltrack card validate` against the governance-card-stack schema
 
-The foundation — every review creates an immutable, hash-verified record.
+### Next
 
-- [x] `ModelReview` table with SHA-256 model state hashes (tamper evidence)
-- [x] `mltrack reviewed` writes structured audit records, not free-text notes
-- [x] OSCAL 1.1.2 Assessment Results export (`mltrack report compliance -f oscal`)
-
-**Why it matters:** Examiners ask "prove this model was reviewed and unchanged since." This tier answers that question with cryptographic evidence.
-
-### Done: CI/CD Compliance Gate
-
-- [x] `mltrack check <model-name>` — exit code 0 (compliant) or 1 (fail) for pipeline integration
-- [x] `mltrack check --all` / `--risk <tier>` — inventory-wide or tier-filtered checks
-- [x] `--json` structured output for pipeline parsing, `--verbose` for human-readable details
-- [x] Silent by default — no stdout noise in CI logs, just the exit code
-
-**Why it matters:** Shifts compliance from periodic audits to continuous enforcement. Every deploy can include a governance gate.
-
-### Done: Registry Discovery
-
-MLTrack is a governance overlay on your existing ML infrastructure — not a duplicate registry.
-
-- [x] `RegistryAdapter` interface with swappable backends (extensible to any platform)
-- [x] `mltrack discover --source mlflow` — surface untracked models before examiners find them
-- [x] `--untracked-only` to focus on governance gaps, `--json` for pipeline integration
-- [x] MLflow Model Registry adapter (`pip install mltrack[mlflow]`)
-
-**Why it matters:** The biggest governance risk isn't a poorly reviewed model — it's a model nobody knows about. Discovery closes that gap before an examiner opens a finding.
-
-### Done: Governance Model Cards
-
-Export any inventory record as a validated [Governance Card Stack](https://github.com/joseruiz1571/governance-card-stack) Model Card — the shared evidence contract between the inventory layer (mltrack) and the assurance layer ([mlassure](https://github.com/joseruiz1571/mlassure)).
-
-- [x] `mltrack card export <name>` — export AIModel as schema-valid Model Card JSON
-- [x] `mltrack card validate <file>` — validate against governance-card-stack schema (exit 0/1, CI-ready)
-- [x] Bundled schema with drift-guard test — fails loudly if schema drifts from upstream
-
-**Why it matters:** Governance documentation is often decoupled from governance tooling. This command makes mltrack's inventory data the source of record for the card format that mlassure consumes for conformance assessment. Governance as a data problem means the inventory and the spec speak the same schema.
-
-### Next: More Registry Adapters
-
-- [ ] **SageMaker Model Registry** — `mltrack discover --source sagemaker` (AWS-native, dominant in FSI)
-- [ ] **Azure ML** — `mltrack discover --source azureml`
-- [ ] **Vertex AI** — `mltrack discover --source vertex`
-- [ ] **Multi-source discovery** — `mltrack discover --source mlflow --source sagemaker` with unified gap view
-
-**Why it matters:** Large financial institutions are multicloud. A model risk team at a tier-1 bank may have models in MLflow, SageMaker, and Azure ML simultaneously. MLTrack's adapter architecture handles all of them with the same governance overlay.
-
-### Future: Examination Evidence Package
-
-- [ ] `mltrack package --model <name> --framework sr117 --output exam-package/` — generate examiner-ready artifact bundles
-- [ ] Pre-built templates for SR 11-7, OCC 2011-12, and NIST AI RMF examination workflows
-
-**Why it matters:** Audit preparation currently takes weeks of manual document assembly. This tier automates the packaging. The real moat here is examiner-facing workflow knowledge — what artifacts examiners actually ask for, in what order, with what context. Building this right requires practitioner input from model risk officers who have run these exams.
-
-### On the Horizon: System Cards & Agent Cards
-
-As AI transparency documentation matures, system-level and agent-level cards are becoming the next layer:
-
-- [ ] **System Cards** — document the full AI system: model + data pipeline + deployment context + safeguards
-- [ ] **Agent Cards** — emerging format for agentic AI: autonomy level, tool access, decision boundaries, human oversight requirements ([governance-card-stack](https://github.com/joseruiz1571/governance-card-stack) already has a draft Agent Card schema)
-
-**Why it matters:** Model Cards describe individual models; the next layer is generating and validating transparency documentation for entire AI systems and autonomous agents. mltrack's inventory data is the natural source of record for both.
-
----
+- [ ] SageMaker, Azure ML, and Vertex AI registry adapters
+- [ ] Multi-source discovery in one gap view
+- [ ] `mltrack package` examination evidence bundles (SR 11-7, OCC 2011-12, NIST AI RMF templates)
+- [ ] System Card and Agent Card export ([governance-card-stack](https://github.com/joseruiz1571/governance-card-stack) has a draft Agent Card schema)
 
 ## Author
 
-**Jose Ruiz-Vazquez**
-
-- GitHub: [@joseruiz1571](https://github.com/joseruiz1571)
-
----
+Jose Ruiz-Vazquez — [GitHub](https://github.com/joseruiz1571) · [Controlled Vocabulary](https://controlledvocabulary.substack.com)
 
 ## Acknowledgments
 
-- Built with [Typer](https://typer.tiangolo.com/) and [Rich](https://rich.readthedocs.io/)
-- Regulatory guidance from Federal Reserve SR 11-7 and NIST AI RMF
+Built with [Typer](https://typer.tiangolo.com/) and [Rich](https://rich.readthedocs.io/). Review cycles follow SR 11-7; control names follow the NIST AI RMF.
 
----
+## Related
+
+Inventory → cards → assurance and custody.
+
+| Layer | Repo |
+|-------|------|
+| Inventory | **mltrack** (this repo) — model inventory and a CI gate |
+| Cards | [governance-card-stack](https://github.com/joseruiz1571/governance-card-stack) — Model, System, and Agent Cards on one OSCAL spine |
+| Assurance | [mlassure](https://github.com/joseruiz1571/mlassure) — conformance assessment against retrieved evidence |
+| Custody | [colophon](https://github.com/joseruiz1571/colophon) — a signed session packet for agent tool use |
+
+`mltrack card export` writes the Model Card the card stack validates. That card is the inventory record [mlassure](https://github.com/joseruiz1571/mlassure) can assess.
