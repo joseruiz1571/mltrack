@@ -1,5 +1,13 @@
 """Pytest fixtures for MLTrack tests."""
 
+import os
+
+# Typer forces a color terminal when GITHUB_ACTIONS, FORCE_COLOR or PY_COLORS
+# is set, which splits help text like "--risk" with ANSI codes. Help-text
+# tests assert on plain text, so disable that before Typer is imported.
+os.environ["_TYPER_FORCE_DISABLE_TERMINAL"] = "1"
+os.environ.pop("FORCE_COLOR", None)  # Rich consoles in mltrack honor it too
+
 import tempfile
 from pathlib import Path
 
