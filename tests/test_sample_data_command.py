@@ -84,6 +84,14 @@ class TestGenerateDeploymentDate:
 class TestGenerateSampleModel:
     """Tests for _generate_sample_model function."""
 
+    def test_production_models_always_classified(self):
+        """Production models carry a data classification, so 0% overdue is fully compliant."""
+        names = set()
+        for _ in range(500):
+            model = _generate_sample_model(names, overdue_probability=0.0)
+            if model["deployment_environment"] == "prod":
+                assert model.get("data_classification"), model["model_name"]
+
     def test_returns_dict_with_required_fields(self):
         """Test generated model has all required fields."""
         model = _generate_sample_model(set())

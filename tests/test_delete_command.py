@@ -46,7 +46,7 @@ class TestDeleteCommand:
         result = runner.invoke(app, ["delete", "--help"])
 
         assert result.exit_code == 0
-        assert "IDENTIFIER" in result.output
+        assert "identifier" in result.output.lower()
         assert "--soft" in result.output
         assert "--yes" in result.output
 

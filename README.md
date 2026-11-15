@@ -4,7 +4,7 @@
 
 [![Python 3.9+](https://img.shields.io/badge/python-3.9+-blue.svg)](https://www.python.org/downloads/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](https://opensource.org/licenses/MIT)
-[![Tests](https://img.shields.io/badge/tests-641%20passing-brightgreen.svg)](#testing)
+[![Governance Gate](https://github.com/joseruiz1571/mltrack/actions/workflows/governance-gate.yml/badge.svg)](https://github.com/joseruiz1571/mltrack/actions/workflows/governance-gate.yml)
 
 ## See it in action
 
@@ -256,7 +256,7 @@ Each `mltrack reviewed` inserts one record: `reviewed_at`, `reviewer`, `outcome`
 
 ## Testing
 
-641 tests.
+642 tests, run in CI on Python 3.9 and 3.12. CI also proves the gate both ways: it passes a compliant inventory and blocks an overdue one.
 
 ```bash
 pip install -e ".[dev]"
@@ -273,7 +273,7 @@ pytest -k "test_validate"
 | Registry Discovery | 72 | MLflow adapter, registry interface, discover command |
 | Reports & Data Operations | 137 | compliance/inventory/risk reports, CSV/JSON import/export |
 | Dashboard | 74 | Metrics, filtering, display, auto-refresh |
-| Sample Data | 33 | Demo data generation |
+| Sample Data | 34 | Demo data generation |
 | Governance Cards | 26 | Card export, validate, schema conformance drift guard |
 | Integration & CLI | 18 | End-to-end workflow tests, CLI entry point |
 
@@ -282,7 +282,7 @@ pytest -k "test_validate"
 ```
 mltrack/
 ├── src/mltrack/     # cli, core, models, adapters, schemas, services, display
-├── tests/           # 641 tests
+├── tests/           # 642 tests
 ├── demo/            # asciinema scripts and GIFs
 ├── pyproject.toml
 └── README.md
@@ -304,23 +304,20 @@ PEP 8, type hints on public functions, and tests for new behavior.
 
 MIT. See [LICENSE](LICENSE).
 
-## Roadmap
+## Status
 
-### Done
+**Feature-complete at v0.1.0, maintained for bug fixes.** Active work on the stack has moved to [colophon](https://github.com/joseruiz1571/colophon).
 
-- [x] `ModelReview` records with SHA-256 model state hashes
-- [x] `mltrack reviewed` writes structured audit records
-- [x] OSCAL 1.1.2 Assessment Results (`mltrack report compliance -f oscal`)
-- [x] `mltrack check` CI gate (exit 0/1, `--all`, `--risk`, `--json`, silent by default)
-- [x] `mltrack discover --source mlflow` (`--untracked-only`, `--json`; `pip install mltrack[mlflow]`)
-- [x] `mltrack card export` / `mltrack card validate` against the governance-card-stack schema
+Shipped in v0.1.0:
 
-### Next
+- `ModelReview` records with SHA-256 model state hashes
+- `mltrack reviewed` writes structured audit records
+- OSCAL 1.1.2 Assessment Results (`mltrack report compliance -f oscal`)
+- `mltrack check` CI gate (exit 0/1, `--all`, `--risk`, `--json`, silent by default)
+- `mltrack discover --source mlflow` (`--untracked-only`, `--json`; `pip install mltrack[mlflow]`)
+- `mltrack card export` / `mltrack card validate` against the governance-card-stack schema
 
-- [ ] SageMaker, Azure ML, and Vertex AI registry adapters
-- [ ] Multi-source discovery in one gap view
-- [ ] `mltrack package` examination evidence bundles (SR 11-7, OCC 2011-12, NIST AI RMF templates)
-- [ ] System Card and Agent Card export ([governance-card-stack](https://github.com/joseruiz1571/governance-card-stack) has a draft Agent Card schema)
+Not planned, but open to contributions: SageMaker, Azure ML and Vertex AI registry adapters; System and Agent Card export.
 
 ## Author
 

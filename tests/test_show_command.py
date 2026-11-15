@@ -63,7 +63,7 @@ class TestShowCommand:
         result = runner.invoke(app, ["show", "--help"])
 
         assert result.exit_code == 0
-        assert "IDENTIFIER" in result.output
+        assert "identifier" in result.output.lower()
         # Help text should mention model name
         assert "model name" in result.output.lower()
 

@@ -7,26 +7,49 @@ on:
     branches: [main]
 
 jobs:
-  compliance-check:
-    name: MLTrack Compliance Gate
+  tests:
+    name: Tests (Python ${{ matrix.python-version }})
     runs-on: ubuntu-latest
-
+    strategy:
+      matrix:
+        python-version: ["3.9", "3.12"]
     steps:
       - uses: actions/checkout@v4
 
-      - name: Set up Python
-        uses: actions/setup-python@v5
+      - uses: actions/setup-python@v5
         with:
-          python-version: "3.11"
+          python-version: ${{ matrix.python-version }}
+
+      - name: Install mltrack with dev and card extras
+        run: pip install -e ".[dev,card]"
+
+      - name: Run tests
+        run: pytest -q
+
+  compliance-gate:
+    name: MLTrack Compliance Gate
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
 
       - name: Install mltrack
         run: pip install -e .
 
-      - name: Load sample inventory
-        run: mltrack sample-data --count 5
-
-      - name: Run compliance gate
+      # The gate reads the inventory at ~/.mltrack/mltrack.db.
+      - name: Gate passes a compliant inventory
         run: |
-          mltrack check --format json
-          # Exit 1 if any models are overdue or non-compliant.
-          # Wire this to your actual inventory DB via MLTRACK_DB_PATH.
+          mltrack sample-data --count 10 --overdue-percent 0
+          mltrack check --all --json
+
+      - name: Gate blocks a non-compliant inventory (fail-closed proof)
+        run: |
+          mltrack sample-data --clear --count 10 --overdue-percent 100
+          if mltrack check --all --json; then
+            echo "Gate passed an inventory with overdue models; it must fail closed."
+            exit 1
+          fi
+          echo "Gate blocked the overdue inventory as expected."

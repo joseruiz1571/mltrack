@@ -59,7 +59,7 @@ class TestReviewedCommand:
         result = runner.invoke(app, ["reviewed", "--help"])
 
         assert result.exit_code == 0
-        assert "IDENTIFIER" in result.output
+        assert "identifier" in result.output.lower()
         assert "--date" in result.output
         assert "--notes" in result.output
 

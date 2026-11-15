@@ -46,7 +46,7 @@ class TestUpdateCommand:
         result = runner.invoke(app, ["update", "--help"])
 
         assert result.exit_code == 0
-        assert "IDENTIFIER" in result.output
+        assert "identifier" in result.output.lower()
         assert "--risk-tier" in result.output
         assert "--status" in result.output
         assert "--yes" in result.output

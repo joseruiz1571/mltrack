@@ -193,7 +193,12 @@ def _generate_sample_model(
     elif risk_tier == RiskTier.HIGH:
         classification = random.choice([DataClassification.CONFIDENTIAL, DataClassification.INTERNAL])
     else:
-        classification = random.choice([DataClassification.INTERNAL, DataClassification.PUBLIC, None])
+        # Production models must carry a classification (validate requires it),
+        # so only non-production models are ever left unclassified.
+        options = [DataClassification.INTERNAL, DataClassification.PUBLIC]
+        if environment != DeploymentEnvironment.PROD:
+            options.append(None)
+        classification = random.choice(options)
 
     # Build model data
     model_data = {

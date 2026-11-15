@@ -5,12 +5,12 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "mltrack"
 version = "0.1.0"
-description = "Model Lineage Tracker - AI governance tool for financial services compliance"
+description = "CLI for AI model inventory and compliance tracking (NIST AI RMF, ISO 42001, SR 11-7)"
 readme = "README.md"
 license = {text = "MIT"}
 requires-python = ">=3.9"
 authors = [
-    {name = "MLTrack Team"}
+    {name = "Jose Ruiz-Vazquez"}
 ]
 keywords = ["ai", "governance", "compliance", "model-risk", "nist", "sr-11-7"]
 classifiers = [
@@ -26,7 +26,7 @@ classifiers = [
     "Topic :: Office/Business :: Financial :: Investment",
 ]
 dependencies = [
-    "typer[all]>=0.9.0",
+    "typer>=0.9.0",
     "rich>=13.0.0",
     "sqlalchemy>=2.0.0",
 ]
@@ -50,9 +50,9 @@ card = [
 mltrack = "mltrack.cli.main:app"
 
 [project.urls]
-Homepage = "https://github.com/yourorg/mltrack"
-Documentation = "https://github.com/yourorg/mltrack#readme"
-Repository = "https://github.com/yourorg/mltrack"
+Homepage = "https://github.com/joseruiz1571/mltrack"
+Documentation = "https://github.com/joseruiz1571/mltrack#readme"
+Repository = "https://github.com/joseruiz1571/mltrack"
 
 [tool.setuptools.packages.find]
 where = ["src"]
