@@ -2,7 +2,7 @@
 
 **CLI for AI model inventory and compliance tracking; maps to NIST AI RMF, ISO 42001, and SR 11-7 behind a fail-closed CI gate.**
 
-[![Python 3.9+](https://img.shields.io/badge/python-3.9+-blue.svg)](https://www.python.org/downloads/)
+[![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](https://opensource.org/licenses/MIT)
 [![Governance Gate](https://github.com/joseruiz1571/mltrack/actions/workflows/governance-gate.yml/badge.svg)](https://github.com/joseruiz1571/mltrack/actions/workflows/governance-gate.yml)
 
@@ -75,7 +75,7 @@ SR 11-7 also requires that model validation be conducted independently of model 
 
 ### Requirements
 
-- Python 3.9 or higher
+- Python 3.10 or higher
 - pip
 
 ### Install from source
@@ -256,7 +256,7 @@ Each `mltrack reviewed` inserts one record: `reviewed_at`, `reviewer`, `outcome`
 
 ## Testing
 
-642 tests, run in CI on Python 3.9 and 3.12. CI also proves the gate both ways: it passes a compliant inventory and blocks an overdue one.
+642 tests, run in CI on Python 3.10 and 3.14. CI also proves the gate both ways: it passes a compliant inventory and blocks an overdue one.
 
 ```bash
 pip install -e ".[dev]"
